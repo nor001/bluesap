@@ -875,7 +875,6 @@ def main():
         st.subheader("📄 Archivo CSV")
         if len(df) > 0:
             st.success(f"✅ {len(df)} registros cargados")
-            st.caption(f"Columnas detectadas: {len(df.columns)}")
           # Opción para recargar archivo
         if st.button("🔄 Recargar Archivo", help="Limpiar caché y cargar nuevo archivo"):
             st.cache_data.clear()
