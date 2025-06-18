@@ -96,7 +96,7 @@ def procesar_csv_data(csv_data, source_name="archivo"):
                 df_test.columns = df_test.columns.str.strip()
                 
                 # Verificar si tiene las columnas esperadas (ya procesado)
-                columnas_esperadas = ['fecha_inicio_real', 'horas_abap_dev', 'grupo_dev', 'ID']
+                columnas_esperadas = ['fecha_inicio_plan', 'horas_abap_dev', 'grupo_dev', 'ID']
                 tiene_columnas_esperadas = any(col in df_test.columns for col in columnas_esperadas)
                 
                 if tiene_columnas_esperadas:
@@ -125,49 +125,49 @@ def procesar_csv_data(csv_data, source_name="archivo"):
         df_original.columns = df_original.columns.str.strip()
         
         # Conversión de fechas
-        if "fecha_inicio_real" in df_original.columns:
+        if "fecha_inicio_plan" in df_original.columns:
             # Reemplazar valores problemáticos comunes
-            df_original["fecha_inicio_real"] = df_original["fecha_inicio_real"].replace(
+            df_original["fecha_inicio_plan"] = df_original["fecha_inicio_plan"].replace(
                 ["#N/A", "nan", "", "NaN", "#VALUE!", "NULL", None], pd.NaT
             )
 
             # Intentar múltiples formatos de fecha
-            fecha_original = df_original["fecha_inicio_real"].copy()
+            fecha_original = df_original["fecha_inicio_plan"].copy()
 
             # Formato DD/MM/YYYY
-            df_original["fecha_inicio_real"] = pd.to_datetime(
-                df_original["fecha_inicio_real"], format="%d/%m/%Y", errors="coerce"
+            df_original["fecha_inicio_plan"] = pd.to_datetime(
+                df_original["fecha_inicio_plan"], format="%d/%m/%Y", errors="coerce"
             )
 
             # Si no funcionó, intentar DD-MM-YYYY
-            if df_original["fecha_inicio_real"].isna().all():
-                df_original["fecha_inicio_real"] = pd.to_datetime(
+            if df_original["fecha_inicio_plan"].isna().all():
+                df_original["fecha_inicio_plan"] = pd.to_datetime(
                     fecha_original, format="%d-%m-%Y", errors="coerce"
                 )
 
             # Si no funcionó, intentar YYYY-MM-DD
-            if df_original["fecha_inicio_real"].isna().all():
-                df_original["fecha_inicio_real"] = pd.to_datetime(
+            if df_original["fecha_inicio_plan"].isna().all():
+                df_original["fecha_inicio_plan"] = pd.to_datetime(
                     fecha_original, format="%Y-%m-%d", errors="coerce"
                 )
 
             # Si no funcionó, intentar formato automático
-            if df_original["fecha_inicio_real"].isna().all():
-                df_original["fecha_inicio_real"] = pd.to_datetime(
+            if df_original["fecha_inicio_plan"].isna().all():
+                df_original["fecha_inicio_plan"] = pd.to_datetime(
                     fecha_original, errors="coerce"
                 )
             # Crear fechas por defecto si no hay fechas válidas
-            if df_original["fecha_inicio_real"].isna().all():
+            if df_original["fecha_inicio_plan"].isna().all():
                 st.warning(
                     "⚠️ No se encontraron fechas válidas. Se usará fecha por defecto (hoy) para permitir asignaciones."
                 )
-                df_original["fecha_inicio_real"] = pd.Timestamp.now().date()
+                df_original["fecha_inicio_plan"] = pd.Timestamp.now().date()
         else:
             # Si no existe la columna, crearla con fecha por defecto
             st.warning(
-                "⚠️ No se encontró la columna 'fecha_inicio_real'. Se creará con fecha por defecto."
+                "⚠️ No se encontró la columna 'fecha_inicio_plan'. Se creará con fecha por defecto."
             )
-            df_original["fecha_inicio_real"] = pd.Timestamp.now().date()
+            df_original["fecha_inicio_plan"] = pd.Timestamp.now().date()
 
         # Conversión de horas (para todos los grupo_dev)
         if "horas_abap_dev" in df_original.columns:
@@ -184,22 +184,22 @@ def procesar_csv_data(csv_data, source_name="archivo"):
         # Eliminar filas completamente vacías
         df_original = df_original.dropna(how="all")
 
-        # Excluir filas con fecha_inicio_real anterior al 1 de enero de 2025 (datos erróneos)
-        if "fecha_inicio_real" in df_original.columns:
+        # Excluir filas con fecha_inicio_plan anterior al 1 de enero de 2025 (datos erróneos)
+        if "fecha_inicio_plan" in df_original.columns:
             fecha_limite = pd.Timestamp("2025-01-01")
 
             # Identificar filas con fechas válidas pero anteriores a 2025
-            fechas_validas = df_original["fecha_inicio_real"].notna()
-            fechas_anteriores = df_original["fecha_inicio_real"] < fecha_limite
+            fechas_validas = df_original["fecha_inicio_plan"].notna()
+            fechas_anteriores = df_original["fecha_inicio_plan"] < fecha_limite
             filas_a_excluir = fechas_validas & fechas_anteriores
 
             if filas_a_excluir.sum() > 0:
                 df_original = df_original[~filas_a_excluir]
 
         # Filtro final: ser más permisivo con las fechas
-        if "fecha_inicio_real" in df_original.columns:
+        if "fecha_inicio_plan" in df_original.columns:
             # Solo eliminar filas si NO hay fechas válidas Y el DataFrame tiene más de 10 filas
-            fechas_validas = df_original["fecha_inicio_real"].notna().sum()
+            fechas_validas = df_original["fecha_inicio_plan"].notna().sum()
             if fechas_validas > 0:
                 df_final = (
                     df_original  # Mantener todas las filas, incluso las sin fecha
@@ -270,8 +270,8 @@ def asignar_desarrolladores_por_grupo_dev(df):
         df_trabajo["abap_asignado"] = None
 
     # Verificar si existen las columnas de fechas, si no, crearlas
-    if "fecha_inicio_plan" not in df_trabajo.columns:
-        df_trabajo["fecha_inicio_plan"] = None
+    if "fecha_inicio_real" not in df_trabajo.columns:
+        df_trabajo["fecha_inicio_real"] = None
     if "fecha_fin_plan" not in df_trabajo.columns:
         df_trabajo["fecha_fin_plan"] = None
 
@@ -285,34 +285,34 @@ def asignar_desarrolladores_por_grupo_dev(df):
     # PASO 2: Calcular fechas para las tareas YA asignadas (solo si no tienen fechas)
     for idx in df_trabajo[mask_ya_asignadas].index:
         row = df_trabajo.loc[idx]
-        if pd.isna(row.get("fecha_inicio_plan")) or pd.isna(row.get("fecha_fin_plan")):
+        if pd.isna(row.get("fecha_inicio_real")) or pd.isna(row.get("fecha_fin_plan")):
             horas = row.get("horas_abap_dev", row.get("horas_desarrollo", 8.0))
-            fecha_inicio = row.get("fecha_inicio_real")
+            fecha_inicio = row.get("fecha_inicio_plan")
             if pd.notna(fecha_inicio):
                 inicio, fin = calcular_fechas_trabajo(fecha_inicio, horas)
                 if inicio:
-                    df_trabajo.loc[idx, "fecha_inicio_plan"] = inicio
+                    df_trabajo.loc[idx, "fecha_inicio_real"] = inicio
                     df_trabajo.loc[idx, "fecha_fin_plan"] = (
                         fin  # PASO 3: Separar por grupo_dev y asignar
                     )
     indices_sin_asignar = df_trabajo[~mask_ya_asignadas].index
     df_sin_asignar = df_trabajo.loc[
         indices_sin_asignar
-    ].copy()  # Ordenar por fecha_inicio_real si existe la columna y tiene datos válidos
-    if "fecha_inicio_real" in df_sin_asignar.columns:
+    ].copy()  # Ordenar por fecha_inicio_plan si existe la columna y tiene datos válidos
+    if "fecha_inicio_plan" in df_sin_asignar.columns:
         try:
             # Intentar convertir a datetime si no lo está ya
             if not pd.api.types.is_datetime64_any_dtype(
-                df_sin_asignar["fecha_inicio_real"]
+                df_sin_asignar["fecha_inicio_plan"]
             ):
-                df_sin_asignar["fecha_inicio_real"] = pd.to_datetime(
-                    df_sin_asignar["fecha_inicio_real"], errors="coerce"
+                df_sin_asignar["fecha_inicio_plan"] = pd.to_datetime(
+                    df_sin_asignar["fecha_inicio_plan"], errors="coerce"
                 )
             # Ordenar solo si hay fechas válidas
-            fechas_validas = df_sin_asignar["fecha_inicio_real"].notna().sum()
+            fechas_validas = df_sin_asignar["fecha_inicio_plan"].notna().sum()
             if fechas_validas > 0:
                 df_sin_asignar = df_sin_asignar.sort_values(
-                    "fecha_inicio_real", na_last=True
+                    "fecha_inicio_plan", na_last=True
                 )
         except Exception as e:
             # Si no se puede ordenar, continuar sin ordenar
@@ -350,7 +350,7 @@ def asignar_desarrolladores_por_grupo_dev(df):
             horas = row.get(
                 "horas_desarrollo", row.get("horas_abap_dev", 8.0)
             )  # Obtener fecha de inicio de manera segura
-        fecha_inicio = row.get("fecha_inicio_real")
+        fecha_inicio = row.get("fecha_inicio_plan")
         if pd.isna(fecha_inicio):
             # Si no hay fecha, usar fecha por defecto (hoy)
             fecha_inicio = pd.Timestamp.now().date()
@@ -391,7 +391,7 @@ def asignar_desarrolladores_por_grupo_dev(df):
         # Asignar si se encontró un desarrollador disponible
         if mejor_desarrollador:
             df_trabajo.loc[idx, "abap_asignado"] = mejor_desarrollador
-            df_trabajo.loc[idx, "fecha_inicio_plan"] = inicio
+            df_trabajo.loc[idx, "fecha_inicio_real"] = inicio
             df_trabajo.loc[idx, "fecha_fin_plan"] = fin
 
     # VERIFICACIÓN FINAL: Asegurar que las asignaciones previas no cambiaron
@@ -411,16 +411,16 @@ def asignar_desarrolladores_por_grupo_dev(df):
 
 def crear_timeline(df):
     """Timeline Gantt optimizado"""
-    if df.empty or "fecha_inicio_plan" not in df.columns:
+    if df.empty or "fecha_inicio_real" not in df.columns:
         return go.Figure()
 
     gantt_data = []
     for _, row in df.iterrows():
-        if pd.notna(row["fecha_inicio_plan"]) and pd.notna(row["fecha_fin_plan"]):
+        if pd.notna(row["fecha_inicio_real"]) and pd.notna(row["fecha_fin_plan"]):
             gantt_data.append(
                 {
                     "Task": row["ID"],
-                    "Start": row["fecha_inicio_plan"],
+                    "Start": row["fecha_inicio_real"],
                     "Finish": row["fecha_fin_plan"],
                     "Resource": row["abap_asignado"],
                     "Horas": row.get("horas_abap_dev", 8.0),
@@ -562,16 +562,16 @@ def crear_resumen_desarrolladores(df):
 
         # Detectar conflictos
         conflictos = 0
-        if "fecha_inicio_plan" in df.columns and "fecha_fin_plan" in df.columns:
+        if "fecha_inicio_real" in df.columns and "fecha_fin_plan" in df.columns:
             conflictos = sum(
                 1
                 for i, t1 in df_dev.iterrows()
                 for j, t2 in df_dev.iterrows()
                 if i < j
-                and pd.notna(t1["fecha_inicio_plan"])
-                and pd.notna(t2["fecha_inicio_plan"])
-                and t1["fecha_inicio_plan"] <= t2["fecha_fin_plan"]
-                and t1["fecha_fin_plan"] >= t2["fecha_inicio_plan"]
+                and pd.notna(t1["fecha_inicio_real"])
+                and pd.notna(t2["fecha_inicio_real"])
+                and t1["fecha_inicio_real"] <= t2["fecha_fin_plan"]
+                and t1["fecha_fin_plan"] >= t2["fecha_inicio_real"]
             )
 
         resumen_data.append(
@@ -700,10 +700,10 @@ def hay_conflicto(inicio_new, fin_new, tareas_existentes):
 
     for _, tarea in tareas_existentes.iterrows():
         if (
-            pd.notna(tarea["fecha_inicio_plan"])
+            pd.notna(tarea["fecha_inicio_real"])
             and pd.notna(tarea["fecha_fin_plan"])
             and inicio_new <= tarea["fecha_fin_plan"]
-            and fin_new >= tarea["fecha_inicio_plan"]
+            and fin_new >= tarea["fecha_inicio_real"]
         ):
             return True
     return False
@@ -743,18 +743,18 @@ def mostrar_fechas_festivas():
 
 def validar_tareas_en_festivos(df):
     """Valida si hay tareas programadas en fechas festivas y muestra alertas"""
-    if df.empty or "fecha_inicio_real" not in df.columns:
+    if df.empty or "fecha_inicio_plan" not in df.columns:
         return
 
     # Convertir fechas si no están ya convertidas
     df_temp = df.copy()
-    if not pd.api.types.is_datetime64_any_dtype(df_temp["fecha_inicio_real"]):
-        df_temp["fecha_inicio_real"] = pd.to_datetime(
-            df_temp["fecha_inicio_real"], errors="coerce"
+    if not pd.api.types.is_datetime64_any_dtype(df_temp["fecha_inicio_plan"]):
+        df_temp["fecha_inicio_plan"] = pd.to_datetime(
+            df_temp["fecha_inicio_plan"], errors="coerce"
         )
 
     # Filtrar tareas válidas con fechas
-    df_validas = df_temp.dropna(subset=["fecha_inicio_real"])
+    df_validas = df_temp.dropna(subset=["fecha_inicio_plan"])
 
     if df_validas.empty:
         return
@@ -762,7 +762,7 @@ def validar_tareas_en_festivos(df):
     # Buscar tareas en fechas festivas
     tareas_festivos = []
     for idx, row in df_validas.iterrows():
-        fecha = row["fecha_inicio_real"]
+        fecha = row["fecha_inicio_plan"]
         if es_dia_festivo(fecha):
             fecha_str = fecha.strftime("%Y-%m-%d")
             tareas_festivos.append(
@@ -806,7 +806,7 @@ def main():
         st.warning("📋 No hay datos cargados. Sube un archivo CSV para continuar.")
         st.info("💡 **Instrucciones:**\n"
                 "1. El archivo debe tener el formato correcto con headers en la fila 4\n"
-                "2. Debe incluir las columnas necesarias como 'fecha_inicio_real', 'grupo_dev', etc.")
+                "2. Debe incluir las columnas necesarias como 'fecha_inicio_plan', 'grupo_dev', etc.")
         st.stop()
 
     # Sidebar controls
@@ -845,9 +845,9 @@ def main():
                         mask = df["ID"] == row["ID"]
                         if mask.any():
                             df.loc[mask, "abap_asignado"] = row["abap_asignado"]
-                            if pd.notna(row.get("fecha_inicio_plan")):
-                                df.loc[mask, "fecha_inicio_plan"] = row[
-                                    "fecha_inicio_plan"
+                            if pd.notna(row.get("fecha_inicio_real")):
+                                df.loc[mask, "fecha_inicio_real"] = row[
+                                    "fecha_inicio_real"
                                 ]
                             if pd.notna(row.get("fecha_fin_plan")):
                                 df.loc[mask, "fecha_fin_plan"] = row["fecha_fin_plan"]
@@ -916,7 +916,7 @@ def main():
 
     with tab2:
         st.subheader("Timeline de Planificación")
-        if "fecha_inicio_plan" in df_filtered.columns:
+        if "fecha_inicio_real" in df_filtered.columns:
             fig_timeline = crear_timeline(df_filtered)
             st.plotly_chart(fig_timeline, use_container_width=True)
         else:
@@ -963,7 +963,8 @@ def main():
                 use_container_width=True,
                 num_rows="dynamic",
                 column_config={
-                    "fecha_inicio_real": st.column_config.DateColumn("Fecha ESFU"),
+                    "fecha_inicio_plan": st.column_config.DateColumn("Fecha Planificada"),
+                    "fecha_inicio_real": st.column_config.DateColumn("Fecha Inicio Real"),
                     "horas_abap_dev": st.column_config.NumberColumn(
                         "Horas ABAP", min_value=0, max_value=200
                     ),
@@ -1029,10 +1030,10 @@ def main():
         with col3:
             # Contar tareas festivas de forma rápida
             festivos_count = 0
-            if "fecha_inicio_real" in df.columns:
+            if "fecha_inicio_plan" in df.columns:
                 for fecha_str in FECHAS_FESTIVAS_PERU.keys():
                     festivos_count += (
-                        df["fecha_inicio_real"]
+                        df["fecha_inicio_plan"]
                         .astype(str)
                         .str.contains(fecha_str, na=False)
                         .sum()

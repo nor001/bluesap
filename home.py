@@ -2,7 +2,7 @@ import streamlit as st
 
 # Config
 st.set_page_config(
-    page_title="SAP", 
+    page_title="PLUZ SAP", 
     layout="wide"
 )
 
