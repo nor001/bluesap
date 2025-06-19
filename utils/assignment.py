@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import datetime, timedelta
 import plotly.graph_objects as go
+import math
 
 
 def is_holiday(date, holidays):
@@ -37,7 +38,7 @@ def calculate_working_dates(base_date, hours, holidays):
     while base_date.weekday() >= 5 or is_holiday(base_date, holidays):
         base_date += timedelta(days=1)
 
-    days = max(1, round(hours / 8))
+    days = max(1, math.ceil(hours / 8))
     end_date = base_date
 
     days_counted = 1

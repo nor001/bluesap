@@ -80,24 +80,6 @@ def main():
         else:
             save_filters(selected_proy, selected_modulo, selected_grupo)
         
-        if st.button(f"🚀 Assign {plan_config['resources_title']}", type="primary"):
-            with st.spinner(f"Assigning {plan_config['resources_title']}..."):
-                df_con_asignaciones = assign_resources_generic(
-                    df_original,
-                    resource_col=plan_config["resource_col"],
-                    hours_col=plan_config["hours_col"],
-                    available_date_col=plan_config["available_date_col"],
-                    plan_date_col=plan_config["plan_date_col"],
-                    start_date_col=plan_config["start_date_col"],
-                    end_date_col=plan_config["end_date_col"],
-                    resource_config=plan_config["resource_config"],
-                    holidays=PERU_HOLIDAYS,
-                    use_group_based_assignment=plan_config.get("use_group_based_assignment", False),
-                    group_col="grupo_dev"
-                )
-                st.session_state["df_con_asignaciones"] = df_con_asignaciones
-                st.rerun()
-        
         st.markdown("---")
         if st.button("🔄 Reload File"):
             st.cache_data.clear()
@@ -105,6 +87,25 @@ def main():
             st.session_state.pop('uploaded_csv_name', None)
             st.session_state.pop('df_con_asignaciones', None)
             st.rerun()
+
+    # --- Automatic Assignment ---
+    if "df_con_asignaciones" not in st.session_state or st.session_state.get("_auto_assign_plan_type") != plan_type:
+        with st.spinner(f"Assigning {plan_config['resources_title']}..."):
+            df_con_asignaciones = assign_resources_generic(
+                df_original,
+                resource_col=plan_config["resource_col"],
+                hours_col=plan_config["hours_col"],
+                available_date_col=plan_config["available_date_col"],
+                plan_date_col=plan_config["plan_date_col"],
+                start_date_col=plan_config["start_date_col"],
+                end_date_col=plan_config["end_date_col"],
+                resource_config=plan_config["resource_config"],
+                holidays=PERU_HOLIDAYS,
+                use_group_based_assignment=plan_config.get("use_group_based_assignment", False),
+                group_col="grupo_dev"
+            )
+            st.session_state["df_con_asignaciones"] = df_con_asignaciones
+            st.session_state["_auto_assign_plan_type"] = plan_type
 
     # Use session_state data if exists, otherwise use original data
     df = st.session_state.get("df_con_asignaciones", df_original)
@@ -134,7 +135,11 @@ def main():
         st.plotly_chart(fig_dist, use_container_width=True)
 
     with tab2:
-        fig_timeline = create_timeline(df_filtered, plan_config)
+        # Add Titulo as hover detail if present, and use precise_hours for visualization only
+        if 'Titulo' in df_filtered.columns:
+            fig_timeline = create_timeline(df_filtered, plan_config, extra_hover_cols=['Titulo'], precise_hours=True)  # precise_hours for visual clarity
+        else:
+            fig_timeline = create_timeline(df_filtered, plan_config, precise_hours=True)
         st.plotly_chart(fig_timeline, use_container_width=True)
 
     with tab3:
@@ -160,7 +165,11 @@ def main():
 
     with tab5:
         st.subheader("Loaded Data")
-        st.dataframe(df_filtered)
+        # Show Titulo as a visible column if present
+        if 'Titulo' in df_filtered.columns:
+            st.dataframe(df_filtered[[col for col in df_filtered.columns if col == 'Titulo' or col != 'Titulo']])
+        else:
+            st.dataframe(df_filtered)
         csv = df_filtered.to_csv(index=False).encode('utf-8-sig')
         st.download_button(
             label="📥 Download CSV with Assignments",

@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-def create_timeline(df, config):
+def create_timeline(df, config, extra_hover_cols=None, precise_hours=False):
     """Generic Gantt timeline."""
     start_date_col = config["start_date_col"]
     end_date_col = config["end_date_col"]
@@ -17,22 +17,34 @@ def create_timeline(df, config):
     gantt_data = []
     for _, row in df.iterrows():
         if pd.notna(row[start_date_col]) and pd.notna(row[end_date_col]) and pd.notna(row[resource_col]):
+            start = row[start_date_col]
+            end = row[end_date_col]
+            # If precise_hours, set start to 09:00 and end to 18:00 for the last day
+            if precise_hours:
+                start = pd.to_datetime(start).replace(hour=9, minute=0, second=0)
+                end = pd.to_datetime(end).replace(hour=18, minute=0, second=0)
             gantt_data.append({
                 "Task": row["ID"],
-                "Start": row[start_date_col],
-                "Finish": row[end_date_col],
+                "Start": start,
+                "Finish": end,
                 "Resource": row[resource_col],
                 "Hours": row.get(hours_col, 8.0),
                 "dev_group": str(row.get("dev_group", "N/A")),
+                # Add extra hover columns if provided
+                **({col: row.get(col, "") for col in extra_hover_cols} if extra_hover_cols else {})
             })
 
     if not gantt_data:
         return go.Figure()
 
+    hover_cols = ["Hours", "dev_group"]
+    if extra_hover_cols:
+        hover_cols += extra_hover_cols
+
     fig = px.timeline(
         pd.DataFrame(gantt_data),
         x_start="Start", x_end="Finish", y="Task",
-        color="Resource", hover_data=["Hours", "dev_group"]
+        color="Resource", hover_data=hover_cols
     )
     fig.update_yaxes(autorange="reversed")
     fig.update_layout(title=f"📅 Planning Timeline ({config['resource_title']})", height=600)
