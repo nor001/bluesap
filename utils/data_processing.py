@@ -85,7 +85,6 @@ def load_csv_data(plan_config, date_format=None):
                 st.rerun()
             return pd.DataFrame()
         else:
-            st.success(f"📁 File loaded: {st.session_state.get('uploaded_csv_name', 'CSV')}")
             return st.session_state['uploaded_csv_data']
 
 
