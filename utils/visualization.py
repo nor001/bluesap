@@ -41,10 +41,14 @@ def create_timeline(df, config, extra_hover_cols=None, precise_hours=False):
     if extra_hover_cols:
         hover_cols += extra_hover_cols
 
+    # Use the same color mapping as the resource distribution
+    color_map = {resource: cfg["color"] for resource, cfg in config["resource_config"].items()}
+
     fig = px.timeline(
         pd.DataFrame(gantt_data),
         x_start="Start", x_end="Finish", y="Task",
-        color="Resource", hover_data=hover_cols
+        color="Resource", hover_data=hover_cols,
+        color_discrete_map=color_map
     )
     fig.update_yaxes(autorange="reversed")
     fig.update_layout(title=f"📅 Planning Timeline ({config['resource_title']})", height=600)

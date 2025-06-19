@@ -68,17 +68,25 @@ def main():
                 proy_options, modulo_options, grupo_options
             )
 
-        selected_proy = st.selectbox("Project (PROY):", proy_options, index=proy_options.index(selected_proy) if selected_proy in proy_options else 0)
-        selected_modulo = st.selectbox("Module:", modulo_options, index=modulo_options.index(selected_modulo) if selected_modulo in modulo_options else 0)
-        if "grupo_dev" in df_original.columns:
-            selected_grupo = st.selectbox("Development Group:", grupo_options, index=grupo_options.index(selected_grupo) if selected_grupo in grupo_options else 0)
-        else:
-            selected_grupo = "Todos"
+        # Initialize filter session_state keys if not present
+        if "selected_proy" not in st.session_state:
+            st.session_state["selected_proy"] = proy_options[0]
+        if "selected_modulo" not in st.session_state:
+            st.session_state["selected_modulo"] = modulo_options[0]
+        if "selected_grupo" not in st.session_state:
+            st.session_state["selected_grupo"] = grupo_options[0]
 
-        if user:
-            save_filters_to_supabase(user["email"], selected_proy, selected_modulo, selected_grupo)
-        else:
-            save_filters(selected_proy, selected_modulo, selected_grupo)
+        def on_filter_change():
+            if user:
+                save_filters_to_supabase(user["email"], st.session_state.selected_proy, st.session_state.selected_modulo, st.session_state.selected_grupo)
+            else:
+                save_filters(st.session_state.selected_proy, st.session_state.selected_modulo, st.session_state.selected_grupo)
+            # No st.rerun() here
+
+        st.selectbox("Project (PROY):", proy_options, index=proy_options.index(selected_proy) if selected_proy in proy_options else 0, key="selected_proy", on_change=on_filter_change)
+        st.selectbox("Module:", modulo_options, index=modulo_options.index(selected_modulo) if selected_modulo in modulo_options else 0, key="selected_modulo", on_change=on_filter_change)
+        if "grupo_dev" in df_original.columns:
+            st.selectbox("Development Group:", grupo_options, index=grupo_options.index(selected_grupo) if selected_grupo in grupo_options else 0, key="selected_grupo", on_change=on_filter_change)
         
         st.markdown("---")
         if st.button("🔄 Reload File"):
@@ -112,12 +120,12 @@ def main():
 
     # Apply filters
     df_filtered = df.copy()
-    if selected_proy != "Todos":
-        df_filtered = df_filtered[df_filtered["PROY"] == selected_proy]
-    if selected_modulo != "Todos":
-        df_filtered = df_filtered[df_filtered["Módulo"] == selected_modulo]
-    if selected_grupo != "Todos" and "grupo_dev" in df_filtered.columns:
-        df_filtered = df_filtered[df_filtered["grupo_dev"] == selected_grupo]
+    if st.session_state.selected_proy != "Todos":
+        df_filtered = df_filtered[df_filtered["PROY"] == st.session_state.selected_proy]
+    if st.session_state.selected_modulo != "Todos":
+        df_filtered = df_filtered[df_filtered["Módulo"] == st.session_state.selected_modulo]
+    if st.session_state.selected_grupo != "Todos" and "grupo_dev" in df_filtered.columns:
+        df_filtered = df_filtered[df_filtered["grupo_dev"] == st.session_state.selected_grupo]
 
     # Normalize date column types to avoid pyarrow/streamlit errors
     df_filtered = normalize_date_columns(df_filtered, plan_config)
