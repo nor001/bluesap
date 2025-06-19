@@ -78,7 +78,6 @@ def load_csv_data(plan_config, date_format=None):
         return process_csv_data(csv_file, plan_config, "default file", date_format)
     else:
         if 'uploaded_csv_data' not in st.session_state:
-            st.warning(f"⚠️ File '{CSV_FILENAME}' not found.")
             uploaded_file = st.file_uploader("📤 Upload your CSV file:", type=['csv'])
             if uploaded_file is not None:
                 st.session_state['uploaded_csv_data'] = process_csv_data(uploaded_file, plan_config, uploaded_file.name, date_format)
