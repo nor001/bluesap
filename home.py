@@ -2,7 +2,9 @@ import streamlit as st
 
 # Config
 st.set_page_config(
-    page_title="PLUZ SAP", 
+    page_title="PLUZ SAP",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # Mensaje de bienvenida simple
