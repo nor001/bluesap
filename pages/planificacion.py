@@ -32,7 +32,6 @@ def main():
         df_original = load_csv_data(get_plan_config(st.session_state.get("plan_type_selector", "Plan de Desarrollo")))
 
     if df_original.empty:
-        st.warning("📋 No data loaded. Upload a CSV file to continue.")
         st.stop()
 
     # --- Sidebar ---
