@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 import traceback
+import streamlit_authenticator as stauth
 
 # Add parent directory to path for imports
 current_dir = Path(__file__).parent.parent
@@ -22,10 +23,13 @@ from utils.visualization import (
     create_group_assignment_stats,
 )
 from utils.config import get_plan_config, PERU_HOLIDAYS
+from utils.user_prefs import save_filters_to_supabase, load_filters_from_supabase, save_filters, load_filters
+from utils.supabase_auth import login_with_google
 
 
 def main():
     """Main function for the planning page."""
+    user = st.session_state.get("user", None)
     st.title("📅 SAP Project Planning")
     
     with st.spinner("Loading CSV data..."):
@@ -44,26 +48,37 @@ def main():
             ["Plan de Desarrollo", "Plan de Pruebas"],
             key="plan_type_selector"
         )
-        
-        # Get configuration for selected plan
         plan_config = get_plan_config(plan_type)
-        if not plan_config:
-            st.error("Invalid plan type.")
-            st.stop()
-
+        
+        # Filters
         st.subheader("🔍 Filters")
         proy_options = ["Todos"] + sorted(df_original["PROY"].dropna().unique())
-        selected_proy = st.selectbox("Project (PROY):", proy_options)
-        
         modulo_options = ["Todos"] + sorted(df_original["Módulo"].dropna().unique())
-        selected_modulo = st.selectbox("Module:", modulo_options)
-
-        # Add group filter if grupo_dev column exists
         if "grupo_dev" in df_original.columns:
             grupo_options = ["Todos"] + sorted(df_original["grupo_dev"].dropna().unique())
-            selected_grupo = st.selectbox("Development Group:", grupo_options)
+        else:
+            grupo_options = ["Todos"]
+
+        if user:
+            selected_proy, selected_modulo, selected_grupo = load_filters_from_supabase(
+                user["email"], proy_options, modulo_options, grupo_options
+            )
+        else:
+            selected_proy, selected_modulo, selected_grupo = load_filters(
+                proy_options, modulo_options, grupo_options
+            )
+
+        selected_proy = st.selectbox("Project (PROY):", proy_options, index=proy_options.index(selected_proy) if selected_proy in proy_options else 0)
+        selected_modulo = st.selectbox("Module:", modulo_options, index=modulo_options.index(selected_modulo) if selected_modulo in modulo_options else 0)
+        if "grupo_dev" in df_original.columns:
+            selected_grupo = st.selectbox("Development Group:", grupo_options, index=grupo_options.index(selected_grupo) if selected_grupo in grupo_options else 0)
         else:
             selected_grupo = "Todos"
+
+        if user:
+            save_filters_to_supabase(user["email"], selected_proy, selected_modulo, selected_grupo)
+        else:
+            save_filters(selected_proy, selected_modulo, selected_grupo)
         
         if st.button(f"🚀 Assign {plan_config['resources_title']}", type="primary"):
             with st.spinner(f"Assigning {plan_config['resources_title']}..."):
