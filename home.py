@@ -9,9 +9,6 @@ st.set_page_config(
 
 # Mensaje de bienvenida simple
 st.title("Consultor SAP")
-st.markdown("### ¡Bienvenido!")
-st.info("Utiliza la barra lateral para navegar entre las funcionalidades del sistema.")
-
 st.markdown("""
 ## Recursos útiles
 
