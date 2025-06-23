@@ -1,44 +1,110 @@
 import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import os
-import sys
-from pathlib import Path
 import traceback
-import streamlit_authenticator as stauth
+import time
+from core import AppConfig, ConfigError, ServiceManager, AILogger
+import pandas as pd
 
-# Add parent directory to path for imports
-current_dir = Path(__file__).parent.parent
-sys.path.append(str(current_dir))
+def initialize_services():
+    """Initialize services using ServiceManager"""
+    service_manager = ServiceManager()
+    return (
+        service_manager.get_service('data'),
+        service_manager.get_service('assignment'),
+        service_manager.get_service('visualization'),
+        service_manager.get_service('auth')
+    )
 
-from utils.assignment import assign_resources_generic
-from utils.data_processing import load_csv_data, normalize_date_columns
-from utils.visualization import (
-    create_timeline,
-    create_resource_distribution,
-    create_resource_summary,
-    show_metrics,
-    create_group_assignment_stats,
-)
-from utils.config import get_plan_config, PERU_HOLIDAYS
-from utils.user_prefs import save_filters_to_supabase, load_filters_from_supabase, save_filters, load_filters
-from utils.supabase_auth import login_with_google
+def normalize_date_columns(df, plan_config):
+    """Normalize date column types to avoid pyarrow/streamlit errors"""
+    try:
+        date_columns = [
+            plan_config.available_date_col,
+            plan_config.plan_date_col,
+            plan_config.start_date_col,
+            plan_config.end_date_col
+        ]
+        
+        for col in date_columns:
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+        
+        return df
+    except Exception as e:
+        st.warning(f"Warning: Could not normalize date columns: {e}")
+        return df
 
+def save_filters(proy, modulo, grupo):
+    """Save filters to session state"""
+    st.session_state["saved_proy"] = proy
+    st.session_state["saved_modulo"] = modulo
+    st.session_state["saved_grupo"] = grupo
+
+def load_filters(proy_options, modulo_options, grupo_options):
+    """Load filters from session state"""
+    saved_proy = st.session_state.get("saved_proy", proy_options[0])
+    saved_modulo = st.session_state.get("saved_modulo", modulo_options[0])
+    saved_grupo = st.session_state.get("saved_grupo", grupo_options[0])
+    return saved_proy, saved_modulo, saved_grupo
+
+def save_filters_to_supabase(user_email, proy, modulo, grupo):
+    """Save filters to Supabase (placeholder for future implementation)"""
+    # TODO: Implement Supabase integration
+    save_filters(proy, modulo, grupo)
+
+def load_filters_from_supabase(user_email, proy_options, modulo_options, grupo_options):
+    """Load filters from Supabase (placeholder for future implementation)"""
+    # TODO: Implement Supabase integration
+    return load_filters(proy_options, modulo_options, grupo_options)
 
 def main():
-    """Main function for the planning page."""
-    user = st.session_state.get("user", None)
+    """Main planning page function"""
+    start_time = time.time()
+    
+    # Initialize logging
+    logger = AILogger()
+    logger.log_operation("Planning Page Started")
+    
+    st.set_page_config(
+        page_title=f"Planificación - {AppConfig.APP_NAME}",
+        page_icon="📅",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Initialize services
+    try:
+        data_service, assignment_service, visualization_service, auth_service = initialize_services()
+        logger.log_service_call("ServiceManager", "get_service", result="success")
+    except Exception as e:
+        logger.log_error(e, "Service Initialization")
+        st.error("Failed to initialize application services. Please check configuration.")
+        st.stop()
+    
+    user = auth_service.get_current_user()
     st.title("📅 SAP Project Planning")
     
+    # Load CSV data
     with st.spinner("Loading CSV data..."):
-        df_original = load_csv_data(get_plan_config(st.session_state.get("plan_type_selector", "Plan de Desarrollo")))
+        try:
+            plan_type = st.session_state.get("plan_type_selector", "Plan de Desarrollo")
+            plan_config = AppConfig.get_plan_config(plan_type)
+            
+            logger.log_operation("Loading CSV Data", {"plan_type": plan_type})
+            df_original = data_service.load_csv_data(plan_config)
+            
+            if df_original.empty:
+                logger.log_operation("CSV Load Failed", {"reason": "empty_dataframe"})
+                st.error("No data available. Please check your CSV file.")
+                st.stop()
+            
+            logger.log_data_operation("CSV Loaded", df_original.shape, list(df_original.columns))
+            
+        except Exception as e:
+            logger.log_error(e, "CSV Loading")
+            st.error(f"Failed to load CSV data: {e}")
+            st.stop()
 
-    if df_original.empty:
-        st.stop()
-
-    # --- Sidebar ---
+    # Sidebar configuration
     with st.sidebar:
         st.header("⚙️ Configuration")
         
@@ -48,20 +114,30 @@ def main():
             ["Plan de Desarrollo", "Plan de Pruebas"],
             key="plan_type_selector"
         )
-        plan_config = get_plan_config(plan_type)
         
-        # Filters
+        try:
+            plan_config = AppConfig.get_plan_config(plan_type)
+        except ConfigError as e:
+            logger.log_error(e, "Configuration")
+            st.error(f"Configuration error: {e}")
+            st.stop()
+        
+        # Filters section
         st.subheader("🔍 Filters")
-        proy_options = ["Todos"] + sorted(df_original["PROY"].dropna().unique())
-        modulo_options = ["Todos"] + sorted(df_original["Módulo"].dropna().unique())
+        
+        # Get filter options
+        proy_options = ["Todos"] + sorted(df_original["PROY"].dropna().unique().tolist())
+        modulo_options = ["Todos"] + sorted(df_original["Módulo"].dropna().unique().tolist())
+        
         if "grupo_dev" in df_original.columns:
-            grupo_options = ["Todos"] + sorted(df_original["grupo_dev"].dropna().unique())
+            grupo_options = ["Todos"] + sorted(df_original["grupo_dev"].dropna().unique().tolist())
         else:
             grupo_options = ["Todos"]
 
+        # Load saved filters
         if user:
             selected_proy, selected_modulo, selected_grupo = load_filters_from_supabase(
-                user["email"], proy_options, modulo_options, grupo_options
+                user.get("email", ""), proy_options, modulo_options, grupo_options
             )
         else:
             selected_proy, selected_modulo, selected_grupo = load_filters(
@@ -77,114 +153,184 @@ def main():
             st.session_state["selected_grupo"] = grupo_options[0]
 
         def on_filter_change():
+            logger.log_user_action("Filter Changed", user.get("email") if user else None, "planificacion", {
+                "proy": st.session_state.selected_proy,
+                "modulo": st.session_state.selected_modulo,
+                "grupo": st.session_state.selected_grupo
+            })
+            
             if user:
-                save_filters_to_supabase(user["email"], st.session_state.selected_proy, st.session_state.selected_modulo, st.session_state.selected_grupo)
+                save_filters_to_supabase(
+                    user.get("email", ""), 
+                    st.session_state.selected_proy, 
+                    st.session_state.selected_modulo, 
+                    st.session_state.selected_grupo
+                )
             else:
-                save_filters(st.session_state.selected_proy, st.session_state.selected_modulo, st.session_state.selected_grupo)
-            # No st.rerun() here
+                save_filters(
+                    st.session_state.selected_proy, 
+                    st.session_state.selected_modulo, 
+                    st.session_state.selected_grupo
+                )
 
-        st.selectbox("Project (PROY):", proy_options, index=proy_options.index(selected_proy) if selected_proy in proy_options else 0, key="selected_proy", on_change=on_filter_change)
-        st.selectbox("Module:", modulo_options, index=modulo_options.index(selected_modulo) if selected_modulo in modulo_options else 0, key="selected_modulo", on_change=on_filter_change)
-        if "grupo_dev" in df_original.columns:
-            st.selectbox("Development Group:", grupo_options, index=grupo_options.index(selected_grupo) if selected_grupo in grupo_options else 0, key="selected_grupo", on_change=on_filter_change)
+        # Filter controls
+        st.selectbox(
+            "Project (PROY):", 
+            proy_options, 
+            index=proy_options.index(selected_proy) if selected_proy in proy_options else 0, 
+            key="selected_proy", 
+            on_change=on_filter_change
+        )
         
+        st.selectbox(
+            "Module:", 
+            modulo_options, 
+            index=modulo_options.index(selected_modulo) if selected_modulo in modulo_options else 0, 
+            key="selected_modulo", 
+            on_change=on_filter_change
+        )
+        
+        if "grupo_dev" in df_original.columns:
+            st.selectbox(
+                "Development Group:", 
+                grupo_options, 
+                index=grupo_options.index(selected_grupo) if selected_grupo in grupo_options else 0, 
+                key="selected_grupo", 
+                on_change=on_filter_change
+            )
+        
+        # Reload button
         st.markdown("---")
         if st.button("🔄 Reload File"):
+            logger.log_user_action("Reload File", user.get("email") if user else None, "planificacion")
             st.cache_data.clear()
             st.session_state.pop('uploaded_csv_data', None)
             st.session_state.pop('uploaded_csv_name', None)
             st.session_state.pop('df_con_asignaciones', None)
             st.rerun()
 
-    # --- Automatic Assignment ---
-    if "df_con_asignaciones" not in st.session_state or st.session_state.get("_auto_assign_plan_type") != plan_type:
-        with st.spinner(f"Assigning {plan_config['resources_title']}..."):
-            df_con_asignaciones = assign_resources_generic(
-                df_original,
-                resource_col=plan_config["resource_col"],
-                hours_col=plan_config["hours_col"],
-                available_date_col=plan_config["available_date_col"],
-                plan_date_col=plan_config["plan_date_col"],
-                start_date_col=plan_config["start_date_col"],
-                end_date_col=plan_config["end_date_col"],
-                resource_config=plan_config["resource_config"],
-                holidays=PERU_HOLIDAYS,
-                use_group_based_assignment=plan_config.get("use_group_based_assignment", False),
-                group_col="grupo_dev"
-            )
-            st.session_state["df_con_asignaciones"] = df_con_asignaciones
-            st.session_state["_auto_assign_plan_type"] = plan_type
-
-    # Use session_state data if exists, otherwise use original data
-    df = st.session_state.get("df_con_asignaciones", df_original)
-
-    # Apply filters
-    df_filtered = df.copy()
-    if st.session_state.selected_proy != "Todos":
-        df_filtered = df_filtered[df_filtered["PROY"] == st.session_state.selected_proy]
-    if st.session_state.selected_modulo != "Todos":
-        df_filtered = df_filtered[df_filtered["Módulo"] == st.session_state.selected_modulo]
-    if st.session_state.selected_grupo != "Todos" and "grupo_dev" in df_filtered.columns:
-        df_filtered = df_filtered[df_filtered["grupo_dev"] == st.session_state.selected_grupo]
-
-    # Normalize date column types to avoid pyarrow/streamlit errors
-    df_filtered = normalize_date_columns(df_filtered, plan_config)
-
-    # Metrics
-    show_metrics(df_filtered, plan_config)
-
-    # --- Tabs ---
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(
-        [f"📊 {plan_config['resource_title']} Distribution", "📅 Timeline", "📋 Summary", "👥 Group Stats", "📄 Data"]
-    )
-
-    with tab1:
-        fig_dist = create_resource_distribution(df_filtered, plan_config)
-        st.plotly_chart(fig_dist, use_container_width=True)
-
-    with tab2:
-        # Add Titulo as hover detail if present, and use precise_hours for visualization only
-        if 'Titulo' in df_filtered.columns:
-            fig_timeline = create_timeline(df_filtered, plan_config, extra_hover_cols=['Titulo'], precise_hours=True)  # precise_hours for visual clarity
-        else:
-            fig_timeline = create_timeline(df_filtered, plan_config, precise_hours=True)
-        st.plotly_chart(fig_timeline, use_container_width=True)
-
-    with tab3:
-        resumen = create_resource_summary(df_filtered, plan_config)
-        if not resumen.empty:
+    # Main content area
+    try:
+        # Automatic resource assignment
+        if "df_con_asignaciones" not in st.session_state or st.session_state.get("_auto_assign_plan_type") != plan_type:
+            with st.spinner(f"Assigning {plan_config.resources_title}..."):
+                logger.log_operation("Resource Assignment Started", {"plan_type": plan_type})
+                
+                df_con_asignaciones = assignment_service.assign_resources_generic(
+                    df_original,
+                    plan_config=plan_config,
+                    holidays=AppConfig.PERU_HOLIDAYS,
+                    use_group_based_assignment=plan_config.use_group_based_assignment,
+                    group_col="grupo_dev"
+                )
+                
+                st.session_state["df_con_asignaciones"] = df_con_asignaciones
+                st.session_state["_auto_assign_plan_type"] = plan_type
+                
+                logger.log_data_operation("Resource Assignment Completed", df_con_asignaciones.shape)
+        
+        # Apply filters
+        filters = {
+            "selected_proy": st.session_state.get("selected_proy", "Todos"),
+            "selected_modulo": st.session_state.get("selected_modulo", "Todos"),
+            "selected_grupo": st.session_state.get("selected_grupo", "Todos")
+        }
+        
+        df_filtered = data_service.apply_filters(st.session_state["df_con_asignaciones"], filters)
+        logger.log_data_operation("Filters Applied", df_filtered.shape, filters=filters)
+        
+        # Display metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_projects = len(df_filtered["PROY"].unique())
+            st.metric("Total Projects", total_projects)
+        
+        with col2:
+            total_tasks = len(df_filtered)
+            st.metric("Total Tasks", total_tasks)
+        
+        with col3:
+            assigned_tasks = len(df_filtered[df_filtered[plan_config.resource_col].notna()])
+            st.metric("Assigned Tasks", assigned_tasks)
+        
+        with col4:
+            unassigned_tasks = total_tasks - assigned_tasks
+            st.metric("Unassigned Tasks", unassigned_tasks)
+        
+        # Display timeline
+        st.subheader("📊 Timeline")
+        timeline_fig = visualization_service.create_timeline(df_filtered, plan_config)
+        st.plotly_chart(timeline_fig, use_container_width=True)
+        
+        # Display detailed table
+        st.subheader("📋 Detailed Assignment Table")
+        
+        # Prepare table data
+        display_columns = [
+            "PROY", "Módulo", "Titulo", plan_config.resource_col,
+            plan_config.hours_col, plan_config.plan_date_col
+        ]
+        
+        # Filter columns that exist in the dataframe
+        available_columns = [col for col in display_columns if col in df_filtered.columns]
+        
+        if available_columns:
+            df_display = df_filtered[available_columns].copy()
+            
+            # Add conflict highlighting
             def color_conflicts(val):
-                return 'background-color: #FF4B4B' if val > 0 else ''
-            styled_df = resumen.style.applymap(color_conflicts, subset=["Conflicts"])
-            st.dataframe(styled_df, use_container_width=True)
-        else:
-            st.info(f"👆 Click 'Assign {plan_config['resources_title']}' to see the summary.")
-
-    with tab4:
-        # Group assignment statistics
-        if plan_config.get("use_group_based_assignment", False) and "grupo_dev" in df_filtered.columns:
-            fig_group_stats = create_group_assignment_stats(df_filtered, plan_config)
-            if fig_group_stats:
-                st.plotly_chart(fig_group_stats, use_container_width=True)
-            else:
-                st.info("No group data available to display statistics.")
-        else:
-            st.info("Group-based assignment is not enabled or no group data available.")
-
-    with tab5:
-        st.subheader("Loaded Data")
-        # Show Titulo as a visible column if present
-        if 'Titulo' in df_filtered.columns:
-            st.dataframe(df_filtered[[col for col in df_filtered.columns if col == 'Titulo' or col != 'Titulo']])
-        else:
-            st.dataframe(df_filtered)
-        csv = df_filtered.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 Download CSV with Assignments",
-            data=csv,
-            file_name=f"planning_{plan_config['resource_col']}.csv",
-            mime="text/csv",
-        )
+                if pd.isna(val):
+                    return 'background-color: #ffcccc'
+                return ''
+            
+            st.dataframe(
+                df_display.style.map(color_conflicts, subset=[plan_config.resource_col]),
+                use_container_width=True
+            )
+        
+        # Export functionality
+        st.subheader("📤 Export Data")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("Export Filtered Data"):
+                try:
+                    csv_data = data_service.export_data(df_filtered, "filtered_data.csv")
+                    st.download_button(
+                        label="Download CSV",
+                        data=csv_data,
+                        file_name="filtered_data.csv",
+                        mime="text/csv"
+                    )
+                    logger.log_user_action("Export Data", user.get("email") if user else None, "planificacion")
+                except Exception as e:
+                    logger.log_error(e, "Data Export")
+                    st.error(f"Export failed: {e}")
+        
+        with col2:
+            if st.button("Export All Data"):
+                try:
+                    csv_data = data_service.export_data(st.session_state["df_con_asignaciones"], "all_data.csv")
+                    st.download_button(
+                        label="Download CSV",
+                        data=csv_data,
+                        file_name="all_data.csv",
+                        mime="text/csv"
+                    )
+                    logger.log_user_action("Export All Data", user.get("email") if user else None, "planificacion")
+                except Exception as e:
+                    logger.log_error(e, "Data Export")
+                    st.error(f"Export failed: {e}")
+        
+        # Log performance
+        duration = time.time() - start_time
+        logger.log_performance("Planning Page Render", duration)
+        
+    except Exception as e:
+        logger.log_error(e, "Planning Page Main Content")
+        st.error(f"Error in planning page: {e}")
+        st.stop()
 
 if __name__ == "__main__":
     try:

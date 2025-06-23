@@ -1,51 +1,55 @@
-# Archivos de datos y configuración específicos del proyecto
-*.csv
-*.code-workspace
+# Environment files
+.env
+.env.local
+.env.production
 
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Entornos virtuales
-.env
-.venv
-env/
+# Virtual environments
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
 
-# VS Code
+# IDE
 .vscode/
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.code-workspace
+*.csv
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Streamlit
 .streamlit/
 
-# Datos y bases de datos
-data/uploads/
-data/exports/
-data/*.db
-data/*.sqlite
-data/*.sqlite3
+# Data files (keep structure, ignore content)
+data/uploads/*
+data/exports/*
+!data/uploads/.gitkeep
+!data/exports/.gitkeep
 
-# Logs y archivos temporales
+# Logs
 *.log
-logs/
-*.tmp
-*.bak
-
-# Archivos del sistema
-.DS_Store
-Thumbs.db
-*.pid
-
-# IDEs
-.idea/
-*.swp
-*.swo
