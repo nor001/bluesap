@@ -28,9 +28,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Python (legacy - backup only)
-backup_streamlit/
-
 # IDE
 .vscode/
 .idea/
