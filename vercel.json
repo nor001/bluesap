@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "app/api/**": {
+      "maxDuration": 30,
+      "memory": 1024
+    }
+  },
+  "regions": ["iad1"],
+  "maxRequestBodySize": "10mb",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install",
+  "framework": "nextjs"
+} 
