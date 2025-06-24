@@ -1,0 +1,115 @@
+// Types for SAP Gestion application
+export interface ResourceConfig {
+  level: 'SENIOR' | 'SEMI_SENIOR' | 'PLENO' | 'JUNIOR';
+  max_tasks: number;
+  color: string;
+}
+
+export interface PlanConfig {
+  resource_col: string;
+  hours_col: string;
+  available_date_col: string;
+  plan_date_col: string;
+  start_date_col: string;
+  end_date_col: string;
+  resource_title: string;
+  resources_title: string;
+  assigned_title: string;
+  use_group_based_assignment: boolean;
+}
+
+export interface FilterState {
+  selected_proy: string;
+  selected_modulo: string;
+  selected_grupo: string;
+}
+
+export interface TimelineData {
+  Task: string;
+  Start: string;
+  Finish: string;
+  Resource: string;
+  Hours: number;
+  dev_group: string;
+  [key: string]: any;
+}
+
+export interface MetricsData {
+  total_projects: number;
+  total_tasks: number;
+  assigned_tasks: number;
+  unassigned_tasks: number;
+}
+
+export interface AppState {
+  csvData: any[];
+  assignedData: any[];
+  filters: FilterState;
+  loading: boolean;
+  planType: string;
+  metrics: MetricsData;
+  timelineData: TimelineData[];
+}
+
+export interface UploadResponse {
+  success: boolean;
+  data?: any[];
+  error?: string;
+  message?: string;
+}
+
+export interface ProcessResponse {
+  success: boolean;
+  data?: any[];
+  assignedData?: any[];
+  error?: string;
+}
+
+export interface AssignmentResponse {
+  success: boolean;
+  data?: any[];
+  error?: string;
+}
+
+export interface ExportResponse {
+  success: boolean;
+  data?: string;
+  filename?: string;
+  error?: string;
+}
+
+// Error types
+export class ConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigError';
+  }
+}
+
+export class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
+}
+
+export class DataProcessingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DataProcessingError';
+  }
+}
+
+export class ResourceError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ResourceError';
+  }
+}
+
+export class SecurityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SecurityError';
+  }
+} 
