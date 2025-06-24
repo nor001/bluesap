@@ -3,11 +3,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+// Debug logs
+console.log('🔍 [supabase.ts] Variables de entorno:');
+console.log('📧 NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Configurado' : 'No configurado');
+console.log('🔑 NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Configurado' : 'No configurado');
+
 // Check if Supabase is configured
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
 
 if (!isSupabaseConfigured) {
   console.warn('⚠️ Supabase no está configurado. Las variables de entorno NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY son requeridas.');
+} else {
+  console.log('✅ Supabase configurado correctamente');
 }
 
 // Custom fetch function for corporate environments with SSL issues
