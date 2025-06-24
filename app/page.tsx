@@ -1,13 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useAppStore } from '@/lib/store';
 import { AppConfig } from '@/lib/config';
 import { CSVUpload } from '@/components/CSVUpload';
 import { Filters } from '@/components/Filters';
 import { Metrics } from '@/components/Metrics';
-import { Timeline } from '@/components/Timeline';
 import { Download, RefreshCw } from 'lucide-react';
+
+// Importación dinámica del componente Timeline para evitar errores de SSR
+const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ default: mod.Timeline })), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="text-gray-400 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
+          <p className="text-gray-500">Preparing interactive chart</p>
+        </div>
+      </div>
+    </div>
+  ),
+});
 
 export default function HomePage() {
   const { 
@@ -200,68 +216,67 @@ export default function HomePage() {
                             Título
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Grupo Dev
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {planConfig.resource_title}
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Hours
+                            {planConfig.start_date_col}
                           </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Plan Date
+                            {planConfig.end_date_col}
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {planConfig.hours_col}
                           </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {filteredData.slice(0, 50).map((row, index) => (
-                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {row.PROY || '-'}
+                        {filteredData.map((row, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {row.PROY}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {row.Módulo || '-'}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row.Módulo}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {row.Titulo || '-'}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row.Título}
                             </td>
-                            <td className={`px-6 py-4 whitespace-nowrap text-sm ${
-                              !row[planConfig.resource_col] ? 'text-red-600 bg-red-50' : 'text-gray-900'
-                            }`}>
-                              {row[planConfig.resource_col] || 'Unassigned'}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row.grupo_dev}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {row[planConfig.hours_col] || '-'}
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row[planConfig.resource_col]}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              {row[planConfig.plan_date_col] ? 
-                                new Date(row[planConfig.plan_date_col]).toLocaleDateString() : 
-                                '-'
-                              }
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row[planConfig.start_date_col]}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row[planConfig.end_date_col]}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {row[planConfig.hours_col]}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    {filteredData.length > 50 && (
-                      <p className="text-sm text-gray-500 mt-2">
-                        Showing first 50 rows of {filteredData.length} total rows
-                      </p>
-                    )}
                   </div>
-                </div>
 
-                {/* Export Section */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">📤 Export Data</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Export Buttons */}
+                  <div className="mt-6 flex space-x-4">
                     <button
-                      onClick={() => handleExport(filteredData, 'filtered_data.csv')}
-                      className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      onClick={() => handleExport(filteredData, `${planType}_filtered_data.csv`)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export Filtered Data
                     </button>
                     <button
-                      onClick={() => handleExport(assignedData, 'all_data.csv')}
-                      className="flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                      onClick={() => handleExport(assignedData, `${planType}_all_data.csv`)}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export All Data
