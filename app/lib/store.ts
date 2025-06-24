@@ -14,6 +14,7 @@ interface AppStore extends AppState {
   clearData: () => void;
   fetchCSVMetadata: () => Promise<void>;
   setCSVMetadata: (metadata: CSVMetadata) => void;
+  syncToSupabase: () => Promise<boolean>;
 }
 
 const initialFilters: FilterState = {
@@ -45,24 +46,28 @@ export const useAppStore = create<AppStore>()(
       // Actions
       uploadCSV: async (file: File) => {
         set({ loading: true });
+        
         try {
           const formData = new FormData();
           formData.append('csv', file);
-
+          
           const response = await fetch('/api/upload', {
             method: 'POST',
             body: formData,
           });
-
+          
           const result = await response.json();
-
-          if (result.success) {
+          
+          if (result.success && result.data) {
             set({ 
-              csvData: result.data || [],
-              csvMetadata: result.metadata,
+              csvData: result.data,
               loading: false 
             });
+            
+            // Automatically assign resources after upload
+            get().assignResources();
           } else {
+            set({ loading: false });
             throw new Error(result.error || 'Upload failed');
           }
         } catch (error) {
@@ -73,9 +78,13 @@ export const useAppStore = create<AppStore>()(
 
       assignResources: async () => {
         const { csvData, planType } = get();
-        if (csvData.length === 0) return;
-
+        
+        if (!csvData || csvData.length === 0) {
+          return;
+        }
+        
         set({ loading: true });
+        
         try {
           const response = await fetch('/api/assign', {
             method: 'POST',
@@ -84,21 +93,23 @@ export const useAppStore = create<AppStore>()(
             },
             body: JSON.stringify({
               data: csvData,
-              planType: planType,
+              planType: planType
             }),
           });
-
+          
           const result = await response.json();
-
-          if (result.success) {
+          
+          if (result.success && result.data) {
             set({ 
-              assignedData: result.data || [],
+              assignedData: result.data,
               loading: false 
             });
           } else {
+            set({ loading: false });
             throw new Error(result.error || 'Assignment failed');
           }
         } catch (error) {
+          set({ loading: false });
           throw error;
         }
       },
@@ -150,6 +161,53 @@ export const useAppStore = create<AppStore>()(
 
       setCSVMetadata: (metadata: CSVMetadata) => {
         set({ csvMetadata: metadata });
+      },
+
+      // Sync data to Supabase when available
+      syncToSupabase: async () => {
+        const { csvData } = get();
+        
+        if (!csvData || csvData.length === 0) {
+          return false;
+        }
+        
+        try {
+          // Convert data back to CSV format
+          const csvContent = [
+            // Headers
+            Object.keys(csvData[0] || {}).join(','),
+            // Data rows
+            ...csvData.map(row => 
+              Object.values(row).map(value => 
+                typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+              ).join(',')
+            )
+          ].join('\n');
+          
+          // Create a File object from the CSV content
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const file = new File([blob], 'central.csv', { type: 'text/csv' });
+          
+          // Try to upload to Supabase
+          const formData = new FormData();
+          formData.append('csv', file);
+          
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            // Data successfully synced to Supabase
+            return true;
+          }
+        } catch (error) {
+          // Supabase still not available, keep using fallback
+        }
+        
+        return false;
       },
     }),
     {

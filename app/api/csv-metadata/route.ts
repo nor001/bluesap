@@ -1,44 +1,43 @@
 import { NextResponse } from 'next/server';
 import { getCSVMetadata } from '@/lib/supabase';
-import { getCSVFromLocal } from '@/lib/local-storage';
-import { MetadataResponse } from '@/lib/types';
+import { getFallbackData, hasFallbackData } from '@/lib/fallback-storage';
 
-export async function GET(): Promise<NextResponse<MetadataResponse>> {
+export async function GET() {
   try {
     // Try to get metadata from Supabase first
     let metadata = await getCSVMetadata();
 
-    // If Supabase fails, try local storage
-    if (!metadata) {
-      const localData = getCSVFromLocal();
-      
-      if (localData) {
-        metadata = {
-          id: parseInt(localData.id),
-          uploaded_at: localData.uploaded_at,
-          file_size: localData.file_size,
-          uploaded_by: localData.uploaded_by,
-          row_count: localData.row_count
-        };
-      }
+    // If Supabase fails, try local fallback
+    if (!metadata && hasFallbackData()) {
+      const { metadata: fallbackMetadata } = getFallbackData();
+      metadata = fallbackMetadata;
     }
 
     if (!metadata) {
       return NextResponse.json({
         success: false,
-        error: 'No CSV metadata found (Supabase not configured or no local data)'
+        error: 'No CSV metadata found'
       }, { status: 404 });
     }
 
     return NextResponse.json({
       success: true,
-      metadata
+      metadata: metadata
     });
 
   } catch (error) {
+    // Try local fallback on error
+    if (hasFallbackData()) {
+      const { metadata: fallbackMetadata } = getFallbackData();
+      return NextResponse.json({
+        success: true,
+        metadata: fallbackMetadata
+      });
+    }
+
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch CSV metadata'
+      error: error instanceof Error ? error.message : 'Failed to fetch metadata'
     }, { status: 500 });
   }
 } 

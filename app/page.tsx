@@ -11,6 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { Download, RefreshCw } from 'lucide-react';
 import { SocialLogin } from './components/SocialLogin';
 import { supabase } from './lib/supabase';
+import Papa from 'papaparse';
 
 // Importación dinámica del componente Timeline para evitar errores de SSR
 const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ default: mod.Timeline })), {
@@ -38,7 +39,8 @@ export default function HomePage() {
     uploadCSV, 
     assignResources, 
     updateFilters, 
-    setPlanType 
+    setPlanType,
+    syncToSupabase
   } = useAppStore();
 
   const [filteredData, setFilteredData] = useState<any[]>([]);
@@ -85,6 +87,49 @@ export default function HomePage() {
     }
   }, [csvData, assignedData.length, assignResources]);
 
+  // Load existing CSV data when user is authenticated
+  useEffect(() => {
+    if (user && csvData.length === 0) {
+      const loadExistingData = async () => {
+        try {
+          const response = await fetch('/api/download-csv');
+          
+          if (response.ok) {
+            const csvText = await response.text();
+            
+            // Parse CSV and set data
+            const result = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+            
+            if (result.data && result.data.length > 0) {
+              // Filter out empty rows and set data
+              const cleanData = result.data.filter((row: any) => 
+                row.PROY && row.PROY !== '' && row.PROY !== 'PROY' && row.PROY !== 'nan'
+              );
+              
+              if (cleanData.length > 0) {
+                // Update store with existing data using the correct method
+                const store = useAppStore.getState();
+                store.csvData = cleanData;
+                
+                // Trigger assignment
+                assignResources();
+                
+                // Try to sync to Supabase if it's available
+                setTimeout(() => {
+                  syncToSupabase();
+                }, 1000);
+              }
+            }
+          }
+        } catch (error) {
+          // Silently fail - user can upload new CSV if needed
+        }
+      };
+      
+      loadExistingData();
+    }
+  }, [user, csvData.length, assignResources, syncToSupabase]);
+
   useEffect(() => {
     async function checkUser() {
       if (!supabase) {
@@ -92,11 +137,50 @@ export default function HomePage() {
         setLoadingUser(false);
         return;
       }
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoadingUser(false);
+      
+      try {
+        // Get current session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          setUser(session.user);
+          setLoadingUser(false);
+          return;
+        }
+        
+        // If no session, try to get user directly
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (user) {
+          setUser(user);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoadingUser(false);
+      }
     }
+    
     checkUser();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase?.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          setUser(session.user);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setUser(session.user);
+        }
+      }
+    ) || { data: { subscription: null } };
+    
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   if (loadingUser) {
@@ -119,15 +203,32 @@ export default function HomePage() {
       )
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const handleLogout = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
+
+  const handleSyncToSupabase = async () => {
+    try {
+      const success = await syncToSupabase();
+      if (success) {
+        alert('✅ Datos sincronizados exitosamente con Supabase');
+      } else {
+        alert('⚠️ No se pudo sincronizar con Supabase. Verifica la conexión.');
+      }
+    } catch (error) {
+      alert('❌ Error al sincronizar con Supabase');
+    }
   };
 
   return (
@@ -142,6 +243,17 @@ export default function HomePage() {
             </div>
             
             <div className="flex items-center space-x-4">
+              {/* User Info */}
+              <div className="text-right">
+                <p className="text-sm text-gray-600 dark:text-gray-300">{user.email}</p>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                >
+                  Cerrar sesión
+                </button>
+              </div>
+
               {/* Plan Type Selector */}
               <div className="flex items-center space-x-4">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Planning Type:</label>
@@ -184,6 +296,21 @@ export default function HomePage() {
                       <option value="Plan de Pruebas">Plan de Pruebas</option>
                     </select>
                   </div>
+                  
+                  {/* Sync to Supabase Button */}
+                  {csvData.length > 0 && (
+                    <div>
+                      <button
+                        onClick={handleSyncToSupabase}
+                        className="w-full px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800"
+                      >
+                        🔄 Sincronizar con Supabase
+                      </button>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Guarda los datos en la nube para persistencia
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

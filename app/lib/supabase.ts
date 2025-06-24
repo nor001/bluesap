@@ -6,12 +6,6 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // Check if Supabase is configured
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
 
-if (!isSupabaseConfigured) {
-  // (log eliminado)
-} else {
-  // (log eliminado)
-}
-
 // Custom fetch function for corporate environments with SSL issues
 const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   try {
@@ -32,7 +26,6 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     // For browser environment
     return fetch(input, init);
   } catch (error) {
-    // (log eliminado)
     throw error;
   }
 };
@@ -41,7 +34,8 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
-        persistSession: false, // Disable session persistence for server-side
+        persistSession: true, // Enable session persistence
+        storageKey: 'sap-gestion-auth', // Custom storage key
       },
       global: {
         headers: {
@@ -93,7 +87,6 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
 // Function to update CSV metadata with error handling
 export async function updateCSVMetadata(metadata: Omit<CSVMetadata, 'id'>): Promise<boolean> {
   if (!supabase) {
-    console.warn('Supabase no está configurado, no se puede actualizar metadata');
     return false;
   }
 
@@ -103,13 +96,11 @@ export async function updateCSVMetadata(metadata: Omit<CSVMetadata, 'id'>): Prom
       .upsert([metadata], { onConflict: 'id' });
 
     if (error) {
-      console.error('Error updating CSV metadata:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error updating CSV metadata:', error);
     return false;
   }
 }
@@ -121,7 +112,6 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
   }
 
   try {
-    // (logs eliminados)
     const { data, error } = await supabase.storage
       .from(CSV_BUCKET_NAME)
       .upload(CSV_FILE_NAME, file, {
@@ -130,14 +120,11 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
       });
 
     if (error) {
-      // (logs eliminados)
       return false;
     }
 
-    // (logs eliminados)
     return true;
   } catch (error) {
-    // (logs eliminados)
     return false;
   }
 } 

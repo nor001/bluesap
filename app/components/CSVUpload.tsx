@@ -15,8 +15,8 @@ export function CSVUpload() {
 
   // Fetch CSV metadata on component mount
   useEffect(() => {
-    fetchCSVMetadata().catch(() => {
-      // (log eliminado)
+    fetchCSVMetadata().catch((error) => {
+      // Silently fail - metadata is optional
     });
   }, [fetchCSVMetadata]);
 
@@ -105,6 +105,19 @@ export function CSVUpload() {
           </div>
         </div>
       </div>
+
+      {/* Supabase Connection Info */}
+      {!csvMetadata && (
+        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+          <div className="flex items-start">
+            <Info className="h-5 w-5 text-yellow-400 dark:text-yellow-300 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-yellow-700 dark:text-yellow-300">
+              <p className="font-medium mb-1">⚠️ Conexión a Supabase</p>
+              <p>No se pudo conectar a Supabase. Puedes subir archivos CSV para procesamiento local.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSV Update Info */}
       {csvMetadata && (

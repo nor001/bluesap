@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Papa from 'papaparse';
-import { UploadResponse } from '@/lib/types';
 import { uploadFileToSupabase, updateCSVMetadata } from '@/lib/supabase';
-import { saveCSVLocally } from '@/lib/local-storage';
+import { setFallbackData } from '@/lib/fallback-storage';
+
+interface UploadResponse {
+  success: boolean;
+  data?: any[];
+  metadata?: any;
+  error?: string;
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse<UploadResponse>> {
   try {
@@ -34,8 +40,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
 
     // Read file content
     const text = await file.text();
-    
-    // Split text into lines and skip first 2 lines
+
+    // Split text into lines and skip first 2 lines (special format)
     const lines = text.split('\n');
     if (lines.length < 3) {
       return NextResponse.json({
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       header: true,
       skipEmptyLines: true,
       transformHeader: (header) => header.trim(),
-      transform: (value) => value.trim(),
+      transform: (value) => value.trim()
     });
 
     if (result.errors.length > 0) {
@@ -117,20 +123,17 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       return normalizedRow;
     });
 
-    // Try to upload to Supabase Storage (optional)
+    // Try to upload to Supabase Storage first
     let uploadSuccess = false;
     let metadata: any = undefined;
-    let storageMethod = 'local';
 
     try {
       uploadSuccess = await uploadFileToSupabase(file);
       
       if (uploadSuccess) {
-        storageMethod = 'supabase';
-        // Update metadata with current timestamp
-        const now = new Date().toISOString();
+        // Update metadata in Supabase
         const metadataToUpdate = {
-          uploaded_at: now,
+          uploaded_at: new Date().toISOString(),
           file_size: file.size,
           uploaded_by: 'user',
           row_count: normalizedData.length
@@ -140,31 +143,31 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         
         if (metadataUpdated) {
           metadata = {
-            id: 1,
             ...metadataToUpdate
           };
         }
       }
     } catch (supabaseError) {
-      // Continue without Supabase - the CSV processing still works
+      // Supabase failed, use local fallback
     }
 
-    // Fallback to local storage if Supabase failed
+    // If Supabase failed, use local fallback
     if (!uploadSuccess) {
-      const localData = saveCSVLocally(text, file.size, normalizedData.length);
-      metadata = {
-        id: localData.id,
-        uploaded_at: localData.uploaded_at,
-        file_size: localData.file_size,
-        uploaded_by: localData.uploaded_by,
-        row_count: localData.row_count
+      // Store in shared fallback storage
+      const fallbackMetadata = {
+        uploaded_at: new Date().toISOString(),
+        file_size: file.size,
+        uploaded_by: 'user (local)',
+        row_count: normalizedData.length
       };
+      
+      setFallbackData(normalizedData, fallbackMetadata);
+      metadata = fallbackMetadata;
     }
 
     return NextResponse.json({
       success: true,
       data: normalizedData,
-      message: `Successfully uploaded ${normalizedData.length} rows (header from line 3) - stored in ${storageMethod}`,
       metadata: metadata
     });
 
