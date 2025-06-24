@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
 export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
   const [error, setError] = useState<string | null>(null);
@@ -9,45 +9,86 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
   const handleLogin = async (provider: 'google' | 'azure') => {
     setError(null);
     setLoading(true);
-    if (!supabase) {
-      setError('Supabase no está configurado.');
+    
+    if (!isSupabaseAvailable()) {
+      setError('Supabase no está configurado para el frontend. Verifica NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.');
       setLoading(false);
       return;
     }
-    const providerName = provider === 'azure' ? 'azure' : 'google';
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: providerName,
-      options: {
-        redirectTo: window.location.origin + '/auth/callback',
-      },
-    });
-    if (error) {
-      setError(error.message);
+    
+    try {
+      const providerName = provider === 'azure' ? 'azure' : 'google';
+      const { error } = await supabaseClient!.auth.signInWithOAuth({
+        provider: providerName,
+        options: {
+          redirectTo: window.location.origin + '/auth/callback',
+        },
+      });
+      
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+      }
+      // El flujo continúa en /auth/callback
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error desconocido durante el login');
       setLoading(false);
     }
-    // El flujo continúa en /auth/callback
   };
 
   return (
     <div className="w-full max-w-sm mx-auto mt-8">
       <h2 className="text-xl font-bold mb-4 text-center">Iniciar sesión</h2>
+      
       <button
-        className="w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50"
+        className={`w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center transition-colors ${
+          loading 
+            ? 'opacity-50 cursor-not-allowed' 
+            : 'hover:bg-gray-50'
+        }`}
         onClick={() => handleLogin('google')}
         disabled={loading}
       >
-        <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
-        Continuar con Google
+        {loading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+            Conectando...
+          </>
+        ) : (
+          <>
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
+            Continuar con Google
+          </>
+        )}
       </button>
+      
       <button
-        className="w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-50"
+        className={`w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center transition-colors ${
+          loading 
+            ? 'opacity-50 cursor-not-allowed' 
+            : 'hover:bg-gray-50'
+        }`}
         onClick={() => handleLogin('azure')}
         disabled={loading}
       >
-        <img src="https://www.svgrepo.com/show/303205/microsoft.svg" alt="Microsoft" className="h-5 w-5 mr-2" />
-        Continuar con Microsoft
+        {loading ? (
+          <>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
+            Conectando...
+          </>
+        ) : (
+          <>
+            <img src="https://www.svgrepo.com/show/303205/microsoft.svg" alt="Microsoft" className="h-5 w-5 mr-2" />
+            Continuar con Microsoft
+          </>
+        )}
       </button>
-      {error && <div className="text-red-600 text-sm mt-2 text-center">{error}</div>}
+      
+      {error && (
+        <div className="text-red-600 text-sm mt-2 text-center p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+          {error}
+        </div>
+      )}
     </div>
   );
 } 

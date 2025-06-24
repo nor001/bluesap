@@ -32,71 +32,42 @@ const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ de
 });
 
 export default function HomePage() {
+  const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const { 
     csvData, 
     assignedData, 
     filters, 
     loading, 
     planType, 
-    uploadCSV, 
+    metrics, 
+    timelineData,
     assignResources, 
     updateFilters, 
-    setPlanType,
+    setPlanType, 
+    setLoading, 
+    setMetrics, 
+    setTimelineData, 
+    clearData, 
     syncToSupabase,
     loadFallbackData
   } = useAppStore();
 
-  const [filteredData, setFilteredData] = useState<any[]>([]);
-  const [planConfig, setPlanConfig] = useState(AppConfig.getPlanConfig(planType));
-  const [user, setUser] = useState<any>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  // Get plan configuration based on plan type
+  const planConfig = AppConfig.getPlanConfig(planType);
 
-  // Update plan config when plan type changes
-  useEffect(() => {
-    setPlanConfig(AppConfig.getPlanConfig(planType));
-  }, [planType]);
-
-  // Apply filters to data
-  useEffect(() => {
-    if (assignedData.length === 0) {
-      setFilteredData([]);
-      return;
-    }
-
-    let filtered = [...assignedData];
-
-    // Apply project filter
-    if (filters.selected_proy && filters.selected_proy !== "Todos") {
-      filtered = filtered.filter(row => row.PROY === filters.selected_proy);
-    }
-
-    // Apply module filter
-    if (filters.selected_modulo && filters.selected_modulo !== "Todos") {
-      filtered = filtered.filter(row => row.Módulo === filters.selected_modulo);
-    }
-
-    // Apply group filter
-    if (filters.selected_grupo && filters.selected_grupo !== "Todos") {
-      filtered = filtered.filter(row => row.grupo_dev === filters.selected_grupo);
-    }
-
-    setFilteredData(filtered);
-  }, [assignedData, filters]);
+  // Filter data based on current filters
+  const filteredData = assignedData.filter(row => {
+    const proyMatch = filters.selected_proy === "Todos" || row.PROY === filters.selected_proy;
+    const moduloMatch = filters.selected_modulo === "Todos" || row.Módulo === filters.selected_modulo;
+    const grupoMatch = filters.selected_grupo === "Todos" || row.grupo_dev === filters.selected_grupo;
+    return proyMatch && moduloMatch && grupoMatch;
+  });
 
   // Auto-assign resources when CSV data is loaded
   useEffect(() => {
     if (csvData.length > 0 && assignedData.length === 0) {
       assignResources();
-    }
-  }, [csvData, assignedData.length, assignResources]);
-
-  // Additional effect to handle CSV data changes from external sources
-  useEffect(() => {
-    if (csvData.length > 0 && assignedData.length === 0) {
-      // Small delay to ensure the store is updated
-      setTimeout(() => {
-        assignResources();
-      }, 50);
     }
   }, [csvData.length, assignedData.length, assignResources]);
 
@@ -299,69 +270,79 @@ export default function HomePage() {
         {/* Data Display */}
         {csvData.length > 0 && (
           <>
-            {/* Filters */}
-            <div className="mb-6">
+            {/* Filters and Plan Type */}
+            <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Filters 
                 data={assignedData}
-                onFilterChange={updateFilters}
+                onFilterChange={updateFilters} 
               />
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Tipo de Plan:
+                </label>
+                <select
+                  value={planType}
+                  onChange={(e) => setPlanType(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Plan de Desarrollo">Plan de Desarrollo</option>
+                  <option value="Plan de Mantenimiento">Plan de Mantenimiento</option>
+                  <option value="Plan de Soporte">Plan de Soporte</option>
+                </select>
+                <button
+                  onClick={assignResources}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {loading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span>Asignar Recursos</span>
+                </button>
+              </div>
             </div>
 
             {/* Metrics */}
             <div className="mb-6">
               <Metrics 
-                data={filteredData} 
+                data={filteredData}
                 planConfig={planConfig}
               />
             </div>
 
-            {/* Plan Type Selector */}
-            <div className="mb-6">
-              <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Plan Type
-                </label>
-                <select
-                  value={planType}
-                  onChange={(e) => setPlanType(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value="Plan de Desarrollo">Plan de Desarrollo</option>
-                  <option value="Plan de Pruebas">Plan de Pruebas</option>
-                </select>
-              </div>
-            </div>
-
             {/* Timeline */}
-            <div className="mb-6">
+            <div className="mb-8">
               <Timeline 
                 data={filteredData}
                 planConfig={planConfig}
               />
             </div>
 
-            {/* Export Buttons */}
-            <div className="flex space-x-4">
+            {/* Export and Sync Buttons */}
+            <div className="flex space-x-4 mb-8">
               <button
-                onClick={() => handleExport(filteredData, 'filtered_data.csv')}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={() => handleExport(csvData, 'sap-projects.csv')}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center space-x-2"
               >
-                <Download className="w-4 h-4 mr-2" />
-                Export Filtered Data
+                <Download className="h-4 w-4" />
+                <span>Exportar CSV Original</span>
               </button>
-              <button
-                onClick={() => handleExport(assignedData, 'all_data.csv')}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Export All Data
-              </button>
+              {assignedData.length > 0 && (
+                <button
+                  onClick={() => handleExport(assignedData, 'sap-projects-assigned.csv')}
+                  className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center space-x-2"
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Exportar CSV Asignado</span>
+                </button>
+              )}
               <button
                 onClick={handleSyncToSupabase}
-                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Sync to Supabase
+                Sincronizar a Supabase
               </button>
             </div>
           </>

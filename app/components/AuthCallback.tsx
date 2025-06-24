@@ -12,42 +12,59 @@ export default function AuthCallback() {
     async function validateUser() {
       setLoading(true);
       setError(null);
+      
       if (!supabase) {
         setError('Supabase no está configurado.');
         setLoading(false);
         return;
       }
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user || !user.email) {
-        setError('No se pudo obtener el usuario autenticado.');
-        setLoading(false);
-        return;
-      }
-      
-      const res = await fetch('/api/auth-validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email })
-      });
-      
-      if (res.ok) {
-        router.replace('/');
-      } else {
-        await supabase.auth.signOut();
-        setError('Tu correo no está invitado. Solicita acceso al administrador.');
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          setError(`Error obteniendo usuario: ${userError.message}`);
+          setLoading(false);
+          return;
+        }
+        
+        if (!user || !user.email) {
+          setError('No se pudo obtener el usuario autenticado.');
+          setLoading(false);
+          return;
+        }
+        
+        const res = await fetch('/api/auth-validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email })
+        });
+        
+        if (res.ok) {
+          router.replace('/');
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          const errorMsg = errorData.error || 'Tu correo no está invitado. Solicita acceso al administrador.';
+          
+          await supabase.auth.signOut();
+          setError(errorMsg);
+          setLoading(false);
+        }
+      } catch (error) {
+        setError(`Error durante la validación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
         setLoading(false);
       }
     }
+    
     validateUser();
   }, [router]);
 
   return (
     <div className="w-full max-w-sm mx-auto mt-16 text-center">
       {loading ? (
-        <div className="text-lg">Validando acceso...</div>
+        <div className="text-lg mb-4">Validando acceso...</div>
       ) : error ? (
-        <div className="text-red-600 text-lg">{error}</div>
+        <div className="text-red-600 text-lg mb-4">{error}</div>
       ) : null}
     </div>
   );

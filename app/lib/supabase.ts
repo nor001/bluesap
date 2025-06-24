@@ -1,47 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Use service role key for full admin access
+const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Check if Supabase is configured
-const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
+// Check if Supabase is configured with service role key
+const isSupabaseConfigured = supabaseUrl && supabaseServiceKey;
 
-// Custom fetch function for corporate environments with SSL issues
-const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  try {
-    // For Node.js environment (server-side)
-    if (typeof window === 'undefined') {
-      // Use node-fetch or similar with custom SSL configuration
-      const response = await fetch(input, {
-        ...init,
-        // Add headers that might help with corporate proxies
-        headers: {
-          ...init?.headers,
-          'User-Agent': 'SAP-Gestion-NextJS/2.0.0',
-        },
-      });
-      return response;
-    }
-    
-    // For browser environment
-    return fetch(input, init);
-  } catch (error) {
-    throw error;
-  }
-};
-
-// Create Supabase client with error handling and custom fetch
+// Create Supabase client with service role key for full access
 export const supabase = isSupabaseConfigured 
-  ? createClient(supabaseUrl, supabaseAnonKey, {
+  ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
-        persistSession: true, // Enable session persistence
-        storageKey: 'sap-gestion-auth', // Custom storage key
-      },
-      global: {
-        headers: {
-          'X-Client-Info': 'sap-gestion-nextjs',
-        },
-        fetch: customFetch,
+        persistSession: true,
+        storageKey: 'sap-gestion-auth',
+        autoRefreshToken: false,
       },
     })
   : null;
