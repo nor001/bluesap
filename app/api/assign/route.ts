@@ -184,7 +184,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<Assignmen
     });
 
   } catch (error) {
-    console.error('Assignment error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Assignment failed'

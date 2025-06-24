@@ -16,22 +16,18 @@ export async function GET() {
 
         if (!error && data) {
           csvContent = await data.text();
-          console.log('✅ CSV descargado desde Supabase Storage');
         }
       } catch (supabaseError) {
-        console.warn('⚠️ Error al descargar desde Supabase, intentando almacenamiento local:', supabaseError);
       }
     }
 
     // Fallback to local storage
     if (!csvContent) {
-      console.log('💾 Intentando descargar desde almacenamiento local...');
       const blob = getCSVAsBlob();
       
       if (blob) {
         csvContent = await blob.text();
         fileName = 'central-local.csv';
-        console.log('✅ CSV descargado desde almacenamiento local');
       }
     }
 
@@ -51,7 +47,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Download error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Download failed'

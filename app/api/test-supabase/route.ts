@@ -17,14 +17,10 @@ export async function GET() {
     }
 
     // Test 1: Check if we can connect to Supabase
-    console.log('🧪 Probando conexión a Supabase...');
-    
     // Test 2: Check if the bucket exists
-    console.log('🏪 Verificando bucket:', CSV_BUCKET_NAME);
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
-      console.error('❌ Error al listar buckets:', bucketsError);
       return NextResponse.json({
         success: false,
         error: 'Error al conectar con Supabase Storage',
@@ -32,10 +28,7 @@ export async function GET() {
       }, { status: 500 });
     }
 
-    console.log('📋 Buckets disponibles:', buckets?.map(b => b.name));
-    
     const bucketExists = buckets?.some(bucket => bucket.name === CSV_BUCKET_NAME);
-    console.log('✅ Bucket existe:', bucketExists);
 
     // Test 3: Try to list files in the bucket
     let filesInBucket: any[] = [];
@@ -45,10 +38,8 @@ export async function GET() {
         .list();
 
       if (filesError) {
-        console.error('❌ Error al listar archivos:', filesError);
       } else {
         filesInBucket = files || [];
-        console.log('📁 Archivos en bucket:', filesInBucket.map(f => f.name));
       }
     }
 
@@ -65,7 +56,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('💥 Error inesperado en test de Supabase:', error);
     return NextResponse.json({
       success: false,
       error: 'Error inesperado',

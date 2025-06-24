@@ -3,18 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Debug logs
-console.log('🔍 [supabase.ts] Variables de entorno:');
-console.log('📧 NEXT_PUBLIC_SUPABASE_URL:', supabaseUrl ? 'Configurado' : 'No configurado');
-console.log('🔑 NEXT_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? 'Configurado' : 'No configurado');
-
 // Check if Supabase is configured
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
 
 if (!isSupabaseConfigured) {
-  console.warn('⚠️ Supabase no está configurado. Las variables de entorno NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY son requeridas.');
+  // (log eliminado)
 } else {
-  console.log('✅ Supabase configurado correctamente');
+  // (log eliminado)
 }
 
 // Custom fetch function for corporate environments with SSL issues
@@ -37,7 +32,7 @@ const customFetch = async (input: RequestInfo | URL, init?: RequestInit): Promis
     // For browser environment
     return fetch(input, init);
   } catch (error) {
-    console.error('Custom fetch error:', error);
+    // (log eliminado)
     throw error;
   }
 };
@@ -74,7 +69,6 @@ export interface CSVMetadata {
 // Function to get CSV metadata with error handling
 export async function getCSVMetadata(): Promise<CSVMetadata | null> {
   if (!supabase) {
-    console.warn('Supabase no está configurado, no se puede obtener metadata');
     return null;
   }
 
@@ -87,13 +81,11 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('Error fetching CSV metadata:', error);
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Error fetching CSV metadata:', error);
     return null;
   }
 }
@@ -125,17 +117,11 @@ export async function updateCSVMetadata(metadata: Omit<CSVMetadata, 'id'>): Prom
 // Function to upload file to Supabase Storage with error handling
 export async function uploadFileToSupabase(file: File): Promise<boolean> {
   if (!supabase) {
-    console.warn('Supabase no está configurado, no se puede subir archivo');
     return false;
   }
 
   try {
-    console.log('🔄 Intentando subir archivo a Supabase Storage...');
-    console.log('📁 Nombre del archivo:', file.name);
-    console.log('📏 Tamaño del archivo:', file.size, 'bytes');
-    console.log('🏪 Bucket:', CSV_BUCKET_NAME);
-    console.log('📄 Nombre en storage:', CSV_FILE_NAME);
-
+    // (logs eliminados)
     const { data, error } = await supabase.storage
       .from(CSV_BUCKET_NAME)
       .upload(CSV_FILE_NAME, file, {
@@ -144,26 +130,14 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
       });
 
     if (error) {
-      console.error('❌ Error al subir a Supabase Storage:', error);
-      console.error('🔍 Detalles del error:', {
-        message: error.message,
-        name: error.name
-      });
+      // (logs eliminados)
       return false;
     }
 
-    console.log('✅ Archivo subido exitosamente a Supabase Storage');
-    console.log('📊 Datos de respuesta:', data);
+    // (logs eliminados)
     return true;
   } catch (error) {
-    console.error('💥 Error inesperado al subir a Supabase:', error);
-    
-    // Check if it's an SSL certificate error
-    if (error instanceof Error && error.message.includes('certificate')) {
-      console.warn('🔒 Error de certificado SSL detectado. Esto es común en entornos corporativos.');
-      console.warn('💡 Solución: Configurar proxy corporativo o usar VPN.');
-    }
-    
+    // (logs eliminados)
     return false;
   }
 } 

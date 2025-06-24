@@ -10,7 +10,6 @@ export async function GET(): Promise<NextResponse<MetadataResponse>> {
 
     // If Supabase fails, try local storage
     if (!metadata) {
-      console.log('📋 Supabase metadata no disponible, intentando almacenamiento local...');
       const localData = getCSVFromLocal();
       
       if (localData) {
@@ -21,7 +20,6 @@ export async function GET(): Promise<NextResponse<MetadataResponse>> {
           uploaded_by: localData.uploaded_by,
           row_count: localData.row_count
         };
-        console.log('✅ Metadata obtenida de almacenamiento local:', metadata);
       }
     }
 
@@ -38,7 +36,6 @@ export async function GET(): Promise<NextResponse<MetadataResponse>> {
     });
 
   } catch (error) {
-    console.error('Error fetching CSV metadata:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch CSV metadata'

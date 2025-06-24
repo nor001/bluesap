@@ -45,7 +45,7 @@ export function getCSVFromLocal(): LocalCSVData | null {
       return JSON.parse(stored) as LocalCSVData;
     }
   } catch (error) {
-    console.error('Error reading from localStorage:', error);
+    // (log eliminado)
   }
 
   return null;

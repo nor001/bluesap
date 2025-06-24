@@ -66,7 +66,6 @@ export const useAppStore = create<AppStore>()(
             throw new Error(result.error || 'Upload failed');
           }
         } catch (error) {
-          console.error('Upload error:', error);
           set({ loading: false });
           throw error;
         }
@@ -100,8 +99,6 @@ export const useAppStore = create<AppStore>()(
             throw new Error(result.error || 'Assignment failed');
           }
         } catch (error) {
-          console.error('Assignment error:', error);
-          set({ loading: false });
           throw error;
         }
       },
@@ -147,7 +144,7 @@ export const useAppStore = create<AppStore>()(
             set({ csvMetadata: result.metadata });
           }
         } catch (error) {
-          console.error('Error fetching CSV metadata:', error);
+          throw error;
         }
       },
 

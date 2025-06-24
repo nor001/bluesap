@@ -123,16 +123,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     let storageMethod = 'local';
 
     try {
-      console.log('🔄 Iniciando proceso de subida a Supabase...');
-      console.log('📁 Archivo recibido:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-
       uploadSuccess = await uploadFileToSupabase(file);
-      
-      console.log('📊 Resultado de subida:', uploadSuccess);
       
       if (uploadSuccess) {
         storageMethod = 'supabase';
@@ -145,27 +136,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
           row_count: normalizedData.length
         };
 
-        console.log('📝 Actualizando metadata:', metadataToUpdate);
-
         const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
-        console.log('📝 Resultado de actualización de metadata:', metadataUpdated);
         
         if (metadataUpdated) {
           metadata = {
             id: 1,
             ...metadataToUpdate
           };
-          console.log('✅ Metadata actualizada exitosamente:', metadata);
         }
       }
     } catch (supabaseError) {
-      console.warn('⚠️ Supabase upload failed, continuing with local processing:', supabaseError);
       // Continue without Supabase - the CSV processing still works
     }
 
     // Fallback to local storage if Supabase failed
     if (!uploadSuccess) {
-      console.log('💾 Guardando CSV localmente como fallback...');
       const localData = saveCSVLocally(text, file.size, normalizedData.length);
       metadata = {
         id: localData.id,
@@ -174,7 +159,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         uploaded_by: localData.uploaded_by,
         row_count: localData.row_count
       };
-      console.log('✅ CSV guardado localmente:', metadata);
     }
 
     return NextResponse.json({
@@ -185,7 +169,6 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Upload failed'

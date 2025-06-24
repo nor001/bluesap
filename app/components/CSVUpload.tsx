@@ -15,8 +15,8 @@ export function CSVUpload() {
 
   // Fetch CSV metadata on component mount
   useEffect(() => {
-    fetchCSVMetadata().catch(error => {
-      console.log('No se pudo cargar metadata del CSV (Supabase no configurado o no hay datos)');
+    fetchCSVMetadata().catch(() => {
+      // (log eliminado)
     });
   }, [fetchCSVMetadata]);
 
