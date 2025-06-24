@@ -67,10 +67,10 @@ export function CSVUpload() {
   return (
     <div className="w-full">
       {/* Info about CSV format */}
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+      <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
         <div className="flex items-start">
-          <Info className="h-5 w-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-blue-700">
+          <Info className="h-5 w-5 text-blue-400 dark:text-blue-300 mr-2 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-700 dark:text-blue-300">
             <p className="font-medium mb-1">📋 Formato CSV Especial</p>
             <p>Tu archivo CSV debe tener la cabecera en la <strong>3ra línea</strong>. Las primeras 2 líneas serán ignoradas automáticamente.</p>
           </div>
@@ -80,8 +80,8 @@ export function CSVUpload() {
       <div
         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           dragActive 
-            ? 'border-primary-500 bg-primary-50' 
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20' 
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
         } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -98,27 +98,27 @@ export function CSVUpload() {
 
         <div className="flex flex-col items-center">
           {uploading ? (
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400 mb-4"></div>
           ) : (
-            <Upload className="h-12 w-12 text-gray-400 mb-4" />
+            <Upload className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4" />
           )}
 
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             {uploading ? 'Uploading...' : 'Upload your CSV file'}
           </h3>
           
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Drag and drop your CSV file here, or{' '}
             <button
               type="button"
               onClick={openFileDialog}
-              className="text-primary-600 hover:text-primary-500 font-medium"
+              className="text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 font-medium"
             >
               browse files
             </button>
           </p>
 
-          <div className="flex items-center justify-center text-xs text-gray-400">
+          <div className="flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
             <FileText className="h-4 w-4 mr-1" />
             CSV files only, max 50MB
           </div>
@@ -126,9 +126,9 @@ export function CSVUpload() {
       </div>
 
       {error && (
-        <div className="mt-4 flex items-center p-4 bg-red-50 border border-red-200 rounded-md">
-          <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
-          <span className="text-sm text-red-700">{error}</span>
+        <div className="mt-4 flex items-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mr-2" />
+          <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
         </div>
       )}
     </div>

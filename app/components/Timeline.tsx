@@ -9,11 +9,11 @@ import { AppConfig } from '@/lib/config';
 const Plot = dynamic(() => import('react-plotly.js'), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+    <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
       <div className="text-center">
-        <div className="text-gray-400 text-6xl mb-4">📊</div>
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
-        <p className="text-gray-500">Preparing interactive chart</p>
+        <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
+        <p className="text-gray-500 dark:text-gray-400">Preparing interactive chart</p>
       </div>
     </div>
   ),
@@ -146,19 +146,31 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
   const layout = useMemo(() => ({
     title: `📅 Planning Timeline (${planConfig.resource_title})`,
     height: 600,
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: 'rgba(0,0,0,0)',
+    font: {
+      color: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000'
+    },
     xaxis: {
       title: 'Date',
       type: 'date',
+      gridcolor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+      color: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000'
     },
     yaxis: {
       title: 'Tasks',
       autorange: 'reversed',
+      gridcolor: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+      color: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000'
     },
     hovermode: 'closest',
     showlegend: true,
     legend: {
       orientation: 'h',
       y: -0.2,
+      font: {
+        color: typeof window !== 'undefined' && document.documentElement.classList.contains('dark') ? '#ffffff' : '#000000'
+      }
     },
   }), [planConfig.resource_title]);
 
@@ -171,11 +183,11 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
 
   if (timelineData.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Timeline Data</h3>
-          <p className="text-gray-500">Upload CSV data and assign resources to see the timeline</p>
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Timeline Data</h3>
+          <p className="text-gray-500 dark:text-gray-400">Upload CSV data and assign resources to see the timeline</p>
         </div>
       </div>
     );
@@ -184,11 +196,11 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
   // Solo renderizar Plotly en el cliente
   if (!isClient) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
-          <p className="text-gray-500">Preparing interactive chart</p>
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
+          <p className="text-gray-500 dark:text-gray-400">Preparing interactive chart</p>
         </div>
       </div>
     );

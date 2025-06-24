@@ -7,18 +7,19 @@ import { AppConfig } from '@/lib/config';
 import { CSVUpload } from '@/components/CSVUpload';
 import { Filters } from '@/components/Filters';
 import { Metrics } from '@/components/Metrics';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Download, RefreshCw } from 'lucide-react';
 
 // Importación dinámica del componente Timeline para evitar errores de SSR
 const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ default: mod.Timeline })), {
   ssr: false,
   loading: () => (
-    <div className="bg-white p-6 rounded-lg shadow-sm border">
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <div className="text-gray-400 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
-          <p className="text-gray-500">Preparing interactive chart</p>
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Loading Timeline...</h3>
+          <p className="text-gray-500 dark:text-gray-400">Preparing interactive chart</p>
         </div>
       </div>
     </div>
@@ -104,27 +105,32 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">📅 SAP Project Planning</h1>
-              <p className="text-gray-600">Resource allocation and timeline management</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">📅 SAP Project Planning</h1>
+              <p className="text-gray-600 dark:text-gray-300">Resource allocation and timeline management</p>
             </div>
             
-            {/* Plan Type Selector */}
             <div className="flex items-center space-x-4">
-              <label className="text-sm font-medium text-gray-700">Planning Type:</label>
-              <select
-                value={planType}
-                onChange={(e) => setPlanType(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              >
-                <option value="Plan de Desarrollo">Plan de Desarrollo</option>
-                <option value="Plan de Pruebas">Plan de Pruebas</option>
-              </select>
+              {/* Plan Type Selector */}
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Planning Type:</label>
+                <select
+                  value={planType}
+                  onChange={(e) => setPlanType(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="Plan de Desarrollo">Plan de Desarrollo</option>
+                  <option value="Plan de Pruebas">Plan de Pruebas</option>
+                </select>
+              </div>
+
+              {/* Theme Toggle */}
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -136,17 +142,17 @@ export default function HomePage() {
           <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               {/* Configuration */}
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">⚙️ Configuration</h3>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">⚙️ Configuration</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Planning Type
                     </label>
                     <select
                       value={planType}
                       onChange={(e) => setPlanType(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="Plan de Desarrollo">Plan de Desarrollo</option>
                       <option value="Plan de Pruebas">Plan de Pruebas</option>
@@ -169,18 +175,18 @@ export default function HomePage() {
           <div className="lg:col-span-3 space-y-6">
             {/* Upload Section */}
             {csvData.length === 0 && (
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">📤 Upload CSV Data</h2>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">📤 Upload CSV Data</h2>
                 <CSVUpload />
               </div>
             )}
 
             {/* Loading State */}
             {loading && (
-              <div className="bg-white p-6 rounded-lg shadow-sm border">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-center">
-                  <RefreshCw className="animate-spin h-8 w-8 text-primary-600 mr-3" />
-                  <span className="text-lg text-gray-700">
+                  <RefreshCw className="animate-spin h-8 w-8 text-primary-600 dark:text-primary-400 mr-3" />
+                  <span className="text-lg text-gray-700 dark:text-gray-300">
                     {csvData.length > 0 ? 'Assigning resources...' : 'Processing data...'}
                   </span>
                 </div>
@@ -194,69 +200,69 @@ export default function HomePage() {
                 <Metrics data={filteredData} planConfig={planConfig} />
 
                 {/* Timeline */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">📊 Timeline</h2>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">📊 Timeline</h2>
                   <Timeline data={filteredData} planConfig={planConfig} />
                 </div>
 
                 {/* Data Table */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-4">📋 Detailed Assignment Table</h2>
+                <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">📋 Detailed Assignment Table</h2>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             PROY
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             Módulo
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             Título
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             Grupo Dev
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             {planConfig.resource_title}
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             {planConfig.start_date_col}
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             {planConfig.end_date_col}
                           </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                             {planConfig.hours_col}
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {filteredData.map((row, index) => (
-                          <tr key={index} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                               {row.PROY}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row.Módulo}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row.Título}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row.grupo_dev}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row[planConfig.resource_col]}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row[planConfig.start_date_col]}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row[planConfig.end_date_col]}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                               {row[planConfig.hours_col]}
                             </td>
                           </tr>
@@ -269,14 +275,14 @@ export default function HomePage() {
                   <div className="mt-6 flex space-x-4">
                     <button
                       onClick={() => handleExport(filteredData, `${planType}_filtered_data.csv`)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export Filtered Data
                     </button>
                     <button
                       onClick={() => handleExport(assignedData, `${planType}_all_data.csv`)}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800"
                     >
                       <Download className="h-4 w-4 mr-2" />
                       Export All Data
