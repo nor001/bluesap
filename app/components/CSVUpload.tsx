@@ -113,7 +113,15 @@ export function CSVUpload() {
             <Info className="h-5 w-5 text-yellow-400 dark:text-yellow-300 mr-2 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-yellow-700 dark:text-yellow-300">
               <p className="font-medium mb-1">⚠️ Conexión a Supabase</p>
-              <p>No se pudo conectar a Supabase. Puedes subir archivos CSV para procesamiento local.</p>
+              <p className="mb-2">No se pudo conectar a Supabase. Puedes subir archivos CSV para procesamiento local.</p>
+              <div className="text-xs space-y-1">
+                <p><strong>Para habilitar Supabase:</strong></p>
+                <ol className="list-decimal list-inside space-y-1 ml-2">
+                  <li>Copia <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">env.example</code> como <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env.local</code></li>
+                  <li>Configura tus credenciales de Supabase en <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env.local</code></li>
+                  <li>Reinicia el servidor de desarrollo</li>
+                </ol>
+              </div>
             </div>
           </div>
         </div>

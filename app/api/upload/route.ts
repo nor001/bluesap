@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Papa from 'papaparse';
 import { uploadFileToSupabase, updateCSVMetadata } from '@/lib/supabase';
 import { setFallbackData } from '@/lib/fallback-storage';
+import { 
+  processSpecialCSV, 
+  convertToOriginalCSVFormat, 
+  createCSVMetadata, 
+  validateCSVFile 
+} from '@/lib/csv-processor';
+import { 
+  handleCSVError, 
+  handleUploadError, 
+  handleSupabaseError, 
+  errorToResponse,
+  logError 
+} from '@/lib/error-handler';
 
 interface UploadResponse {
   success: boolean;
   data?: any[];
   metadata?: any;
   error?: string;
+  errorType?: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<UploadResponse>> {
@@ -16,165 +29,92 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     const file = formData.get('csv') as File;
 
     if (!file) {
-      return NextResponse.json({
-        success: false,
-        error: 'No file provided'
-      }, { status: 400 });
+      const error = handleUploadError({ message: 'No file provided' });
+      logError(error, 'Upload API');
+      return NextResponse.json(errorToResponse(error), { status: 400 });
     }
 
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      return NextResponse.json({
-        success: false,
-        error: 'File must be a CSV'
-      }, { status: 400 });
-    }
-
-    // Validate file size (50MB limit)
-    if (file.size > 50 * 1024 * 1024) {
-      return NextResponse.json({
-        success: false,
-        error: 'File size must be less than 50MB'
-      }, { status: 400 });
+    // Validate file using centralized validation
+    if (!validateCSVFile(file)) {
+      const error = handleUploadError({ message: 'Invalid file. Must be a CSV file under 50MB' });
+      logError(error, 'Upload API');
+      return NextResponse.json(errorToResponse(error), { status: 400 });
     }
 
     // Read file content
     const text = await file.text();
 
-    // Split text into lines and skip first 2 lines (special format)
-    const lines = text.split('\n');
-    if (lines.length < 3) {
-      return NextResponse.json({
-        success: false,
-        error: 'CSV file must have at least 3 lines'
-      }, { status: 400 });
-    }
-    
-    // Remove first 2 lines and join the rest
-    const csvContent = lines.slice(2).join('\n');
-    
-    // Parse CSV with Papa Parse using the 3rd line as header
-    const result = Papa.parse(csvContent, {
-      header: true,
-      skipEmptyLines: true,
-      transformHeader: (header) => header.trim(),
-      transform: (value) => value.trim()
-    });
-
-    if (result.errors.length > 0) {
-      return NextResponse.json({
-        success: false,
-        error: `CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`
-      }, { status: 400 });
+    // Process CSV using centralized processor with special case preservation
+    let processedData;
+    try {
+      processedData = processSpecialCSV(text);
+    } catch (csvError) {
+      const error = handleCSVError(csvError);
+      logError(error, 'Upload API');
+      return NextResponse.json(errorToResponse(error), { status: 400 });
     }
 
-    // Clean and validate data
-    const data = result.data as any[];
-    
-    // Remove rows where PROY is empty or contains non-data values
-    const cleanedData = data.filter(row => 
-      row.PROY && 
-      row.PROY !== '' && 
-      row.PROY !== 'PROY' &&
-      row.PROY !== 'nan'
-    );
-
-    // Normalize date columns
-    const normalizedData = cleanedData.map(row => {
-      const normalizedRow = { ...row };
-      
-      // Normalize date columns
-      const dateColumns = [
-        'esfu_disponible',
-        'plan_abap_dev_ini',
-        'Fecha Inicio Plan',
-        'Fecha Fin Plan',
-        'available_test_date',
-        'plan_abap_pu_ini',
-        'pu_ini',
-        'Fecha Fin Real'
-      ];
-
-      dateColumns.forEach(col => {
-        if (row[col]) {
-          try {
-            // Handle dd/mm/yyyy format
-            const date = new Date(row[col]);
-            if (!isNaN(date.getTime())) {
-              normalizedRow[col] = date.toISOString();
-            }
-          } catch (e) {
-            // Keep original value if parsing fails
-          }
-        }
-      });
-
-      // Normalize numeric columns
-      const numericColumns = ['plan_abap_dev_time', 'plan_abap_pu_time'];
-      numericColumns.forEach(col => {
-        if (row[col]) {
-          const num = parseFloat(row[col]);
-          if (!isNaN(num)) {
-            normalizedRow[col] = num;
-          }
-        }
-      });
-
-      return normalizedRow;
-    });
+    if (processedData.rowCount === 0) {
+      const error = handleCSVError({ message: 'No valid data found in CSV file' });
+      logError(error, 'Upload API');
+      return NextResponse.json(errorToResponse(error), { status: 400 });
+    }
 
     // Try to upload to Supabase Storage first
     let uploadSuccess = false;
     let metadata: any = undefined;
 
     try {
-      uploadSuccess = await uploadFileToSupabase(file);
+      // Convert back to original format for Supabase storage (preserving special format)
+      const originalFormat = convertToOriginalCSVFormat(processedData.data);
+      const originalBlob = new Blob([originalFormat], { type: 'text/csv' });
+      const originalFile = new File([originalBlob], file.name, { type: 'text/csv' });
+
+      uploadSuccess = await uploadFileToSupabase(originalFile);
       
       if (uploadSuccess) {
-        // Update metadata in Supabase
-        const metadataToUpdate = {
-          uploaded_at: new Date().toISOString(),
-          file_size: file.size,
-          uploaded_by: 'user',
-          row_count: normalizedData.length
-        };
+        // Create metadata using centralized function
+        const metadataToUpdate = createCSVMetadata(
+          processedData.data, 
+          file.size, 
+          'user'
+        );
 
         const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
         
         if (metadataUpdated) {
-          metadata = {
-            ...metadataToUpdate
-          };
+          metadata = metadataToUpdate;
         }
       }
     } catch (supabaseError) {
       // Supabase failed, use local fallback
+      const error = handleSupabaseError(supabaseError);
+      logError(error, 'Upload API - Supabase Fallback');
+      // Continue with fallback - don't return error
     }
 
     // If Supabase failed, use local fallback
     if (!uploadSuccess) {
-      // Store in shared fallback storage
-      const fallbackMetadata = {
-        uploaded_at: new Date().toISOString(),
-        file_size: file.size,
-        uploaded_by: 'user (local)',
-        row_count: normalizedData.length
-      };
+      // Create metadata for fallback
+      const fallbackMetadata = createCSVMetadata(
+        processedData.data, 
+        file.size, 
+        'user (local)'
+      );
       
-      setFallbackData(normalizedData, fallbackMetadata);
+      setFallbackData(processedData.data, fallbackMetadata);
       metadata = fallbackMetadata;
     }
 
     return NextResponse.json({
       success: true,
-      data: normalizedData,
+      data: processedData.data,
       metadata: metadata
     });
 
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Upload failed'
-    }, { status: 500 });
+    const appError = handleUploadError(error);
+    logError(appError, 'Upload API');
+    return NextResponse.json(errorToResponse(appError), { status: 500 });
   }
 } 

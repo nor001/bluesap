@@ -1,6 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AppState, FilterState, MetricsData, TimelineData, CSVMetadata } from './types';
+import { AppConfig } from './config';
+import { convertToSimpleCSV } from './csv-processor';
+import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
+import { logError } from './error-handler';
 
 interface AppStore extends AppState {
   // Actions
@@ -15,6 +19,7 @@ interface AppStore extends AppState {
   fetchCSVMetadata: () => Promise<void>;
   setCSVMetadata: (metadata: CSVMetadata) => void;
   syncToSupabase: () => Promise<boolean>;
+  loadFallbackData: () => void;
 }
 
 const initialFilters: FilterState = {
@@ -72,6 +77,13 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           set({ loading: false });
+          logError({
+            type: 'processing',
+            message: 'Upload failed',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: true
+          }, 'Store');
           throw error;
         }
       },
@@ -110,17 +122,24 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           set({ loading: false });
+          logError({
+            type: 'processing',
+            message: 'Resource assignment failed',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: true
+          }, 'Store');
           throw error;
         }
       },
 
-      updateFilters: (filters: Partial<FilterState>) => {
+      updateFilters: (newFilters) => {
         set((state) => ({
-          filters: { ...state.filters, ...filters }
+          filters: { ...state.filters, ...newFilters }
         }));
       },
 
-      setPlanType: (planType: string) => {
+      setPlanType: (planType) => {
         set({ planType });
       },
 
@@ -149,18 +168,55 @@ export const useAppStore = create<AppStore>()(
       fetchCSVMetadata: async () => {
         try {
           const response = await fetch('/api/csv-metadata');
-          const result = await response.json();
-
-          if (result.success && result.metadata) {
-            set({ csvMetadata: result.metadata });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              set({ csvMetadata: result.metadata });
+            }
           }
         } catch (error) {
-          throw error;
+          // Silently fail - metadata is optional
+          logError({
+            type: 'network',
+            message: 'Failed to fetch CSV metadata',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: false
+          }, 'Store');
         }
       },
 
       setCSVMetadata: (metadata: CSVMetadata) => {
         set({ csvMetadata: metadata });
+      },
+
+      // Load fallback data if available and fresh
+      loadFallbackData: () => {
+        try {
+          const fallbackData = getFallbackData();
+          
+          if (fallbackData && isFallbackDataFresh()) {
+            set({ 
+              csvData: fallbackData.csvData,
+              csvMetadata: fallbackData.metadata
+            });
+            
+            // Trigger resource assignment if we have data
+            if (fallbackData.csvData.length > 0) {
+              setTimeout(() => {
+                get().assignResources();
+              }, 100);
+            }
+          }
+        } catch (error) {
+          logError({
+            type: 'storage',
+            message: 'Failed to load fallback data',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: false
+          }, 'Store');
+        }
       },
 
       // Sync data to Supabase when available
@@ -172,29 +228,15 @@ export const useAppStore = create<AppStore>()(
         }
         
         try {
-          // Convert data back to CSV format
-          const csvContent = [
-            // Headers
-            Object.keys(csvData[0] || {}).join(','),
-            // Data rows
-            ...csvData.map(row => 
-              Object.values(row).map(value => 
-                typeof value === 'string' && value.includes(',') ? `"${value}"` : value
-              ).join(',')
-            )
-          ].join('\n');
-          
-          // Create a File object from the CSV content
-          const blob = new Blob([csvContent], { type: 'text/csv' });
-          const file = new File([blob], 'central.csv', { type: 'text/csv' });
-          
-          // Try to upload to Supabase
-          const formData = new FormData();
-          formData.append('csv', file);
-          
-          const response = await fetch('/api/upload', {
+          // Use the dedicated sync endpoint
+          const response = await fetch('/api/sync-to-supabase', {
             method: 'POST',
-            body: formData,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              data: csvData
+            }),
           });
           
           const result = await response.json();
@@ -205,16 +247,25 @@ export const useAppStore = create<AppStore>()(
           }
         } catch (error) {
           // Supabase still not available, keep using fallback
+          logError({
+            type: 'network',
+            message: 'Supabase sync failed',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: false
+          }, 'Store');
         }
         
         return false;
       },
     }),
     {
-      name: 'sap-gestion-storage',
+      name: 'bluesap-store',
       partialize: (state) => ({
         filters: state.filters,
         planType: state.planType,
+        metrics: state.metrics,
+        timelineData: state.timelineData,
         csvMetadata: state.csvMetadata,
       }),
     }

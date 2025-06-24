@@ -1,63 +1,59 @@
-import { NextResponse } from 'next/server';
-import { supabase, CSV_BUCKET_NAME, CSV_FILE_NAME } from '@/lib/supabase';
-import { getFallbackData, hasFallbackData } from '@/lib/fallback-storage';
+import { NextRequest, NextResponse } from 'next/server';
+import { downloadFileFromSupabase } from '@/lib/supabase';
+import { getFallbackData } from '@/lib/fallback-storage';
+import { convertToSimpleCSV } from '@/lib/csv-processor';
+import { handleSupabaseError, logError } from '@/lib/error-handler';
 
-export async function GET() {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Try Supabase first
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.storage
-          .from(CSV_BUCKET_NAME)
-          .download(CSV_FILE_NAME);
+    // Try to download from Supabase first
+    let csvContent: string | null = null;
+    
+    try {
+      csvContent = await downloadFileFromSupabase();
+    } catch (supabaseError) {
+      // Supabase failed, try fallback storage
+      const error = handleSupabaseError(supabaseError);
+      logError(error, 'Download CSV API - Supabase Fallback');
+    }
 
-        if (!error && data) {
-          const csvContent = await data.text();
-          return new NextResponse(csvContent, {
-            headers: {
-              'Content-Type': 'text/csv',
-              'Content-Disposition': `attachment; filename="${CSV_FILE_NAME}"`,
-            },
-          });
-        }
-      } catch (supabaseError) {
-        // Supabase failed, use local fallback
+    // If Supabase failed, use fallback storage
+    if (!csvContent) {
+      const fallbackData = getFallbackData();
+      
+      if (fallbackData && fallbackData.csvData.length > 0) {
+        // Convert to simple CSV format for download
+        csvContent = convertToSimpleCSV(fallbackData.csvData);
       }
     }
 
-    // Fallback to local storage
-    if (hasFallbackData()) {
-      const { csvData } = getFallbackData();
-      
-      // Convert data back to CSV
-      const headers = Object.keys(csvData[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...csvData.map(row => 
-          headers.map(header => {
-            const value = row[header];
-            return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-          }).join(',')
-        )
-      ].join('\n');
-
-      return new NextResponse(csvContent, {
-        headers: {
-          'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="local-${CSV_FILE_NAME}"`,
-        },
-      });
+    if (!csvContent) {
+      return NextResponse.json({
+        success: false,
+        error: 'No CSV data available'
+      }, { status: 404 });
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'CSV file not found'
-    }, { status: 404 });
+    // Return CSV content
+    return new NextResponse(csvContent, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="sap_project_data.csv"'
+      }
+    });
 
   } catch (error) {
+    logError({
+      type: 'processing',
+      message: 'Failed to download CSV',
+      details: error,
+      timestamp: Date.now(),
+      userFriendly: false
+    }, 'Download CSV API');
+    
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Download failed'
+      error: 'Failed to download CSV'
     }, { status: 500 });
   }
 } 

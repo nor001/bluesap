@@ -127,4 +127,26 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
   } catch (error) {
     return false;
   }
+}
+
+// Function to download file from Supabase Storage with error handling
+export async function downloadFileFromSupabase(): Promise<string | null> {
+  if (!supabase) {
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(CSV_BUCKET_NAME)
+      .download(CSV_FILE_NAME);
+
+    if (error || !data) {
+      return null;
+    }
+
+    const csvContent = await data.text();
+    return csvContent;
+  } catch (error) {
+    return null;
+  }
 } 
