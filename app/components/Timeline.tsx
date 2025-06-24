@@ -1,9 +1,23 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
-import Plot from 'react-plotly.js';
+import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { TimelineData, PlanConfig } from '@/lib/types';
 import { AppConfig } from '@/lib/config';
+
+// Importación dinámica de Plotly para evitar errores de SSR
+const Plot = dynamic(() => import('react-plotly.js'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+      <div className="text-center">
+        <div className="text-gray-400 text-6xl mb-4">📊</div>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
+        <p className="text-gray-500">Preparing interactive chart</p>
+      </div>
+    </div>
+  ),
+});
 
 interface TimelineProps {
   data: any[];
@@ -13,6 +27,12 @@ interface TimelineProps {
 }
 
 export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours = false }: TimelineProps) {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const timelineData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -156,6 +176,19 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
           <div className="text-gray-400 text-6xl mb-4">📊</div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Timeline Data</h3>
           <p className="text-gray-500">Upload CSV data and assign resources to see the timeline</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Solo renderizar Plotly en el cliente
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center h-96 bg-gray-50 rounded-lg">
+        <div className="text-center">
+          <div className="text-gray-400 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Loading Timeline...</h3>
+          <p className="text-gray-500">Preparing interactive chart</p>
         </div>
       </div>
     );
