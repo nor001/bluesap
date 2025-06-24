@@ -6,9 +6,8 @@
     }
   },
   "regions": ["iad1"],
-  "maxRequestBodySize": "10mb",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "framework": "nextjs"
-} 
+}
