@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle } from 'lucide-react';
+import { Upload, FileText, AlertCircle, Info } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export function CSVUpload() {
@@ -66,6 +66,17 @@ export function CSVUpload() {
 
   return (
     <div className="w-full">
+      {/* Info about CSV format */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
+        <div className="flex items-start">
+          <Info className="h-5 w-5 text-blue-400 mr-2 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-700">
+            <p className="font-medium mb-1">📋 Formato CSV Especial</p>
+            <p>Tu archivo CSV debe tener la cabecera en la <strong>3ra línea</strong>. Las primeras 2 líneas serán ignoradas automáticamente.</p>
+          </div>
+        </div>
+      </div>
+
       <div
         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           dragActive 

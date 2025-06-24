@@ -33,8 +33,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     // Read file content
     const text = await file.text();
     
-    // Parse CSV with Papa Parse
-    const result = Papa.parse(text, {
+    // Split text into lines and skip first 2 lines
+    const lines = text.split('\n');
+    if (lines.length < 3) {
+      return NextResponse.json({
+        success: false,
+        error: 'CSV file must have at least 3 lines'
+      }, { status: 400 });
+    }
+    
+    // Remove first 2 lines and join the rest
+    const csvContent = lines.slice(2).join('\n');
+    
+    // Parse CSV with Papa Parse using the 3rd line as header
+    const result = Papa.parse(csvContent, {
       header: true,
       skipEmptyLines: true,
       transformHeader: (header) => header.trim(),
@@ -106,7 +118,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     return NextResponse.json({
       success: true,
       data: normalizedData,
-      message: `Successfully uploaded ${normalizedData.length} rows`
+      message: `Successfully uploaded ${normalizedData.length} rows (header from line 3)`
     });
 
   } catch (error) {
