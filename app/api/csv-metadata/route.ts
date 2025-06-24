@@ -9,7 +9,8 @@ export async function GET() {
 
     // If Supabase fails, try local fallback
     if (!metadata && hasFallbackData()) {
-      const { metadata: fallbackMetadata } = getFallbackData();
+      const fallback = getFallbackData();
+      const fallbackMetadata = fallback ? fallback.metadata : null;
       metadata = fallbackMetadata;
     }
 
@@ -28,7 +29,8 @@ export async function GET() {
   } catch (error) {
     // Try local fallback on error
     if (hasFallbackData()) {
-      const { metadata: fallbackMetadata } = getFallbackData();
+      const fallback = getFallbackData();
+      const fallbackMetadata = fallback ? fallback.metadata : null;
       return NextResponse.json({
         success: true,
         metadata: fallbackMetadata
