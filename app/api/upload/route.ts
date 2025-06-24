@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Papa from 'papaparse';
 import { UploadResponse } from '@/lib/types';
+import { uploadFileToSupabase, updateCSVMetadata } from '@/lib/supabase';
+import { saveCSVLocally } from '@/lib/local-storage';
 
 export async function POST(request: NextRequest): Promise<NextResponse<UploadResponse>> {
   try {
@@ -115,10 +117,71 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       return normalizedRow;
     });
 
+    // Try to upload to Supabase Storage (optional)
+    let uploadSuccess = false;
+    let metadata: any = undefined;
+    let storageMethod = 'local';
+
+    try {
+      console.log('🔄 Iniciando proceso de subida a Supabase...');
+      console.log('📁 Archivo recibido:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      uploadSuccess = await uploadFileToSupabase(file);
+      
+      console.log('📊 Resultado de subida:', uploadSuccess);
+      
+      if (uploadSuccess) {
+        storageMethod = 'supabase';
+        // Update metadata with current timestamp
+        const now = new Date().toISOString();
+        const metadataToUpdate = {
+          uploaded_at: now,
+          file_size: file.size,
+          uploaded_by: 'user',
+          row_count: normalizedData.length
+        };
+
+        console.log('📝 Actualizando metadata:', metadataToUpdate);
+
+        const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
+        console.log('📝 Resultado de actualización de metadata:', metadataUpdated);
+        
+        if (metadataUpdated) {
+          metadata = {
+            id: 1,
+            ...metadataToUpdate
+          };
+          console.log('✅ Metadata actualizada exitosamente:', metadata);
+        }
+      }
+    } catch (supabaseError) {
+      console.warn('⚠️ Supabase upload failed, continuing with local processing:', supabaseError);
+      // Continue without Supabase - the CSV processing still works
+    }
+
+    // Fallback to local storage if Supabase failed
+    if (!uploadSuccess) {
+      console.log('💾 Guardando CSV localmente como fallback...');
+      const localData = saveCSVLocally(text, file.size, normalizedData.length);
+      metadata = {
+        id: localData.id,
+        uploaded_at: localData.uploaded_at,
+        file_size: localData.file_size,
+        uploaded_by: localData.uploaded_by,
+        row_count: localData.row_count
+      };
+      console.log('✅ CSV guardado localmente:', metadata);
+    }
+
     return NextResponse.json({
       success: true,
       data: normalizedData,
-      message: `Successfully uploaded ${normalizedData.length} rows (header from line 3)`
+      message: `Successfully uploaded ${normalizedData.length} rows (header from line 3) - stored in ${storageMethod}`,
+      metadata: metadata
     });
 
   } catch (error) {

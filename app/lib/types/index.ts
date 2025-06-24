@@ -49,6 +49,7 @@ export interface AppState {
   planType: string;
   metrics: MetricsData;
   timelineData: TimelineData[];
+  csvMetadata?: CSVMetadata;
 }
 
 export interface UploadResponse {
@@ -56,6 +57,7 @@ export interface UploadResponse {
   data?: any[];
   error?: string;
   message?: string;
+  metadata?: CSVMetadata;
 }
 
 export interface ProcessResponse {
@@ -75,6 +77,20 @@ export interface ExportResponse {
   success: boolean;
   data?: string;
   filename?: string;
+  error?: string;
+}
+
+export interface CSVMetadata {
+  id: number;
+  uploaded_at: string;
+  file_size: number;
+  uploaded_by?: string;
+  row_count: number;
+}
+
+export interface MetadataResponse {
+  success: boolean;
+  metadata?: CSVMetadata;
   error?: string;
 }
 

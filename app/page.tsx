@@ -9,6 +9,8 @@ import { Filters } from '@/components/Filters';
 import { Metrics } from '@/components/Metrics';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Download, RefreshCw } from 'lucide-react';
+import { SocialLogin } from './components/SocialLogin';
+import { supabase } from './lib/supabase';
 
 // Importación dinámica del componente Timeline para evitar errores de SSR
 const Timeline = dynamic(() => import('@/components/Timeline').then(mod => ({ default: mod.Timeline })), {
@@ -41,6 +43,8 @@ export default function HomePage() {
 
   const [filteredData, setFilteredData] = useState<any[]>([]);
   const [planConfig, setPlanConfig] = useState(AppConfig.getPlanConfig(planType));
+  const [user, setUser] = useState<any>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   // Update plan config when plan type changes
   useEffect(() => {
@@ -80,6 +84,28 @@ export default function HomePage() {
       assignResources();
     }
   }, [csvData, assignedData.length, assignResources]);
+
+  useEffect(() => {
+    async function checkUser() {
+      if (!supabase) {
+        setUser(null);
+        setLoadingUser(false);
+        return;
+      }
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoadingUser(false);
+    }
+    checkUser();
+  }, []);
+
+  if (loadingUser) {
+    return <div className="w-full text-center mt-16">Cargando...</div>;
+  }
+
+  if (!user) {
+    return <SocialLogin />;
+  }
 
   const handleExport = (data: any[], filename: string) => {
     const csvContent = [

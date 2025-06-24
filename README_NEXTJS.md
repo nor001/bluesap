@@ -2,7 +2,7 @@
 
 ## 📋 Resumen de la Migración
 
-Esta aplicación ha sido migrada exitosamente de **Streamlit** a **Next.js** para desplegarse en **Vercel**, manteniendo **100% de la funcionalidad** original.
+Esta aplicación ha sido migrada exitosamente de **Streamlit** a **Next.js** para desplegarse en **Vercel**, manteniendo **100% de la funcionalidad** original y agregando **almacenamiento centralizado** con Supabase.
 
 ### ✅ Funcionalidades Preservadas
 
@@ -15,6 +15,14 @@ Esta aplicación ha sido migrada exitosamente de **Streamlit** a **Next.js** par
 - ✅ **Arquitectura IA** (ServiceManager, logging estructurado)
 - ✅ **Configuración centralizada** de recursos
 
+### 🆕 Nuevas Funcionalidades
+
+- ✅ **Almacenamiento centralizado** en Supabase Storage
+- ✅ **CSV compartido** - un solo archivo para todos los usuarios
+- ✅ **Metadata con fecha/hora** de última actualización
+- ✅ **Sobrescritura automática** del archivo anterior
+- ✅ **Información de actualización** visible al usuario
+
 ## 🏗️ Arquitectura Nueva
 
 ### Frontend (Next.js 14)
@@ -24,15 +32,28 @@ app/
 │   ├── Timeline.tsx     # Timeline con Plotly
 │   ├── Filters.tsx      # Filtros dinámicos
 │   ├── Metrics.tsx      # Métricas en tiempo real
-│   └── CSVUpload.tsx    # Upload de archivos
+│   └── CSVUpload.tsx    # Upload de archivos (actualizado)
 ├── api/                 # API Routes (Edge Functions)
-│   ├── upload/route.ts  # Procesamiento CSV
-│   └── assign/route.ts  # Asignación de recursos
+│   ├── upload/route.ts  # Procesamiento CSV + Supabase
+│   ├── assign/route.ts  # Asignación de recursos
+│   ├── csv-metadata/    # Metadata del CSV
+│   └── download-csv/    # Descarga del CSV centralizado
 ├── lib/                 # Lógica de negocio
 │   ├── config.ts        # Configuración centralizada
 │   ├── store.ts         # State management (Zustand)
-│   └── types/           # TypeScript types
+│   ├── supabase.ts      # Configuración Supabase (nuevo)
+│   └── types/           # TypeScript types (actualizado)
 └── page.tsx             # Página principal
+```
+
+### Backend (Supabase)
+```
+supabase/
+├── storage/
+│   └── csv-storage/     # Bucket para archivos CSV
+│       └── central.csv  # Archivo CSV centralizado
+└── database/
+    └── csv_metadata     # Tabla con metadata del CSV
 ```
 
 ### Tecnologías Utilizadas
@@ -44,30 +65,74 @@ app/
 - **Plotly.js** para visualizaciones
 - **Papa Parse** para CSV processing
 - **Lucide React** para iconos
+- **Supabase** para almacenamiento centralizado (nuevo)
 
 ## 🚀 Instalación y Desarrollo
 
-### 1. Instalar Dependencias
+### 1. Configurar Supabase
+
+**Importante**: Antes de ejecutar la aplicación, debes configurar Supabase:
+
+1. Sigue las instrucciones en `SUPABASE_SETUP.md`
+2. Crea un proyecto en Supabase
+3. Configura el bucket `csv-storage`
+4. Crea la tabla `csv_metadata`
+5. Configura las variables de entorno
+
+### 2. Variables de Entorno
+
+Crea un archivo `.env.local`:
+
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=tu_url_del_proyecto_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima_supabase
+```
+
+### 3. Instalar Dependencias
 ```bash
 npm install
 ```
 
-### 2. Ejecutar en Desarrollo
+### 4. Ejecutar en Desarrollo
 ```bash
 npm run dev
 ```
 
-### 3. Construir para Producción
+### 5. Construir para Producción
 ```bash
 npm run build
 ```
 
-### 4. Desplegar en Vercel
+### 6. Desplegar en Vercel
 ```bash
 # Conectar repositorio a Vercel
 # O usar CLI:
 vercel --prod
 ```
+
+## 📊 Funcionalidad de CSV Centralizado
+
+### 🔄 Flujo de Trabajo
+
+1. **Usuario A** sube un CSV → Se guarda como `central.csv` en Supabase
+2. **Usuario B** accede → Ve la fecha/hora de la última actualización
+3. **Usuario C** sube un nuevo CSV → Sobrescribe `central.csv` y actualiza metadata
+4. **Todos los usuarios** ven el CSV más reciente automáticamente
+
+### 📅 Información Mostrada
+
+- **Fecha de actualización**: Formato español (ej: "15 de enero de 2024")
+- **Hora de actualización**: Formato 24h (ej: "14:30:25")
+- **Número de filas**: Cantidad de registros procesados
+- **Tamaño del archivo**: En MB
+
+### 🛡️ Seguridad
+
+- ✅ Validación de archivos (tipo, tamaño)
+- ✅ Políticas de acceso en Supabase
+- ✅ Sanitización de inputs
+- ✅ Rate limiting en API routes
 
 ## 📊 Comparación: Streamlit vs Next.js
 
@@ -81,6 +146,8 @@ vercel --prod
 | **State Management** | Session state | Zustand persistente |
 | **API** | Integrada | Edge functions |
 | **Mobile** | Básico | Responsive completo |
+| **Almacenamiento** | Local | Supabase centralizado |
+| **Colaboración** | No | CSV compartido en tiempo real |
 
 ## 🔧 Configuración de Recursos
 
@@ -127,6 +194,8 @@ static DEVELOPERS_CONFIG_GRID = {
 ```env
 NODE_ENV=production
 NEXT_PUBLIC_APP_NAME="SAP Gestion"
+NEXT_PUBLIC_SUPABASE_URL=tu_url_supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_supabase
 ```
 
 ## 📱 Responsive Design
@@ -142,6 +211,7 @@ La aplicación es completamente responsive:
 - ✅ Sanitización de inputs
 - ✅ Rate limiting en API routes
 - ✅ CORS configurado
+- ✅ Políticas de acceso en Supabase
 
 ## 📊 Performance
 
@@ -156,6 +226,7 @@ La aplicación es completamente responsive:
 - Client-side hydration para interactividad
 - Edge functions para procesamiento
 - Image optimization automática
+- Supabase Storage para archivos
 
 ## 🧪 Testing
 
@@ -176,6 +247,7 @@ npm run build
 - **Error tracking** automático
 - **Performance monitoring**
 - **User interaction tracking**
+- **Supabase logs** para storage
 
 ## 🔄 Migración de Datos
 
@@ -197,13 +269,13 @@ El formato de CSV se mantiene compatible:
 3. **Integración** con sistemas externos
 4. **Analytics** avanzados
 5. **Mobile app** nativa (opcional)
+6. **Autenticación** de usuarios (opcional)
+7. **Historial** de versiones del CSV (opcional)
 
-## 📞 Soporte
+## 📚 Documentación Adicional
 
-Para soporte técnico o preguntas sobre la migración:
-- Revisar logs en Vercel Dashboard
-- Verificar configuración en `app/lib/config.ts`
-- Validar tipos en `app/lib/types/`
+- `SUPABASE_SETUP.md` - Configuración detallada de Supabase
+- `README.md` - Documentación original del proyecto
 
 ---
 

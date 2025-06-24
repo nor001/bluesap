@@ -7,7 +7,11 @@
   },
   "regions": ["iad1"],
   "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_APP_NAME": "SAP Gestion"
+  }
 }

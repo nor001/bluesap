@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { AppState, FilterState, MetricsData, TimelineData } from './types';
+import { AppState, FilterState, MetricsData, TimelineData, CSVMetadata } from './types';
 
 interface AppStore extends AppState {
   // Actions
@@ -12,6 +12,8 @@ interface AppStore extends AppState {
   setMetrics: (metrics: MetricsData) => void;
   setTimelineData: (data: TimelineData[]) => void;
   clearData: () => void;
+  fetchCSVMetadata: () => Promise<void>;
+  setCSVMetadata: (metadata: CSVMetadata) => void;
 }
 
 const initialFilters: FilterState = {
@@ -38,6 +40,7 @@ export const useAppStore = create<AppStore>()(
       planType: "Plan de Desarrollo",
       metrics: initialMetrics,
       timelineData: [],
+      csvMetadata: undefined,
 
       // Actions
       uploadCSV: async (file: File) => {
@@ -56,6 +59,7 @@ export const useAppStore = create<AppStore>()(
           if (result.success) {
             set({ 
               csvData: result.data || [],
+              csvMetadata: result.metadata,
               loading: false 
             });
           } else {
@@ -130,7 +134,25 @@ export const useAppStore = create<AppStore>()(
           assignedData: [],
           timelineData: [],
           metrics: initialMetrics,
+          csvMetadata: undefined,
         });
+      },
+
+      fetchCSVMetadata: async () => {
+        try {
+          const response = await fetch('/api/csv-metadata');
+          const result = await response.json();
+
+          if (result.success && result.metadata) {
+            set({ csvMetadata: result.metadata });
+          }
+        } catch (error) {
+          console.error('Error fetching CSV metadata:', error);
+        }
+      },
+
+      setCSVMetadata: (metadata: CSVMetadata) => {
+        set({ csvMetadata: metadata });
       },
     }),
     {
@@ -138,6 +160,7 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         filters: state.filters,
         planType: state.planType,
+        csvMetadata: state.csvMetadata,
       }),
     }
   )

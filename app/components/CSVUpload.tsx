@@ -1,15 +1,24 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Upload, FileText, AlertCircle, Info } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Upload, FileText, AlertCircle, Info, Clock, Calendar } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 export function CSVUpload() {
   const [dragActive, setDragActive] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { uploadCSV } = useAppStore();
+  const { uploadCSV, csvMetadata, fetchCSVMetadata } = useAppStore();
+
+  // Fetch CSV metadata on component mount
+  useEffect(() => {
+    fetchCSVMetadata().catch(error => {
+      console.log('No se pudo cargar metadata del CSV (Supabase no configurado o no hay datos)');
+    });
+  }, [fetchCSVMetadata]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -64,6 +73,26 @@ export function CSVUpload() {
     fileInputRef.current?.click();
   };
 
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, "dd 'de' MMMM 'de' yyyy", { locale: es });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Format time for display
+  const formatTime = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'HH:mm:ss');
+    } catch {
+      return '';
+    }
+  };
+
   return (
     <div className="w-full">
       {/* Info about CSV format */}
@@ -76,6 +105,31 @@ export function CSVUpload() {
           </div>
         </div>
       </div>
+
+      {/* CSV Update Info */}
+      {csvMetadata && (
+        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+          <div className="flex items-start">
+            <Clock className="h-5 w-5 text-green-400 dark:text-green-300 mr-2 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-green-700 dark:text-green-300">
+              <p className="font-medium mb-1">📅 Última Actualización del CSV</p>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                  <Calendar className="h-4 w-4 mr-1" />
+                  <span>{formatDate(csvMetadata.uploaded_at)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1" />
+                  <span>{formatTime(csvMetadata.uploaded_at)}</span>
+                </div>
+              </div>
+              <p className="text-xs mt-1">
+                Filas: {csvMetadata.row_count} | Tamaño: {(csvMetadata.file_size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div
         className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -104,23 +158,23 @@ export function CSVUpload() {
           )}
 
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            {uploading ? 'Uploading...' : 'Upload your CSV file'}
+            {uploading ? 'Subiendo...' : 'Sube tu archivo CSV'}
           </h3>
           
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Drag and drop your CSV file here, or{' '}
+            Arrastra y suelta tu archivo CSV aquí, o{' '}
             <button
               type="button"
               onClick={openFileDialog}
               className="text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 font-medium"
             >
-              browse files
+              busca archivos
             </button>
           </p>
 
           <div className="flex items-center justify-center text-xs text-gray-400 dark:text-gray-500">
             <FileText className="h-4 w-4 mr-1" />
-            CSV files only, max 50MB
+            Solo archivos CSV, máximo 50MB
           </div>
         </div>
       </div>
