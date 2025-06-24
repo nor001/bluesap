@@ -4,6 +4,32 @@
 
 Aplicación moderna de gestión de proyectos SAP migrada de Streamlit a Next.js para desplegarse en Vercel. Mantiene toda la funcionalidad original con mejoras significativas en performance y mantenibilidad.
 
+## 🔒 Configuración Segura
+
+### Variables de Entorno
+1. **Copia el archivo de ejemplo:**
+   ```bash
+   cp env.example .env.local
+   ```
+
+2. **Configura tus credenciales en `.env.local`:**
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=tu_url_de_supabase
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_clave_anonima
+   SUPABASE_SERVICE_ROLE_KEY=tu_clave_de_servicio
+   ```
+
+3. **Inicia el servidor de forma segura:**
+   ```bash
+   # PowerShell
+   .\start-secure.ps1
+   
+   # CMD
+   start-secure.bat
+   ```
+
+⚠️ **IMPORTANTE**: Nunca subas `.env.local` a Git. Las credenciales están protegidas.
+
 ## ✨ Características
 
 - 📊 **Timeline interactivo** con Plotly.js

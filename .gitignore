@@ -4,6 +4,11 @@
 .env.production
 .env.development
 
+# Scripts with credentials (DO NOT COMMIT)
+start-simple.ps1
+start-simple.bat
+quick-setup-env.ps1
+
 # Next.js
 .next/
 out/
