@@ -10,15 +10,16 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
     setError(null);
     setLoading(true);
     
-    if (!isSupabaseAvailable()) {
-      setError('Supabase no está configurado para el frontend. Verifica NEXT_PUBLIC_SUPABASE_URL y NEXT_PUBLIC_SUPABASE_ANON_KEY.');
-      setLoading(false);
-      return;
-    }
-    
     try {
+      // Verificar si Supabase está disponible
+      if (!isSupabaseAvailable()) {
+        setError('Error de configuración. Por favor, contacta al administrador.');
+        setLoading(false);
+        return;
+      }
+      
       const providerName = provider === 'azure' ? 'azure' : 'google';
-      const { error } = await supabaseClient!.auth.signInWithOAuth({
+      const { data, error } = await supabaseClient!.auth.signInWithOAuth({
         provider: providerName,
         options: {
           redirectTo: window.location.origin + '/auth/callback',
@@ -28,8 +29,13 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
       if (error) {
         setError(error.message);
         setLoading(false);
+      } else if (data?.url) {
+        // Redirigir al usuario a la URL de OAuth
+        window.location.href = data.url;
+      } else {
+        setError('No se pudo iniciar el proceso de autenticación');
+        setLoading(false);
       }
-      // El flujo continúa en /auth/callback
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error desconocido durante el login');
       setLoading(false);

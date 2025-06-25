@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
 export function SupabaseStatus() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
@@ -8,14 +8,14 @@ export function SupabaseStatus() {
 
   useEffect(() => {
     async function checkConnection() {
-      if (!supabase) {
+      if (!isSupabaseAvailable()) {
         setStatus('error');
-        setError('Supabase no está configurado');
+        setError('Error de configuración');
         return;
       }
 
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const { data, error } = await supabaseClient!.auth.getSession();
         
         if (error) {
           setStatus('error');

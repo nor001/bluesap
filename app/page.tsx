@@ -11,7 +11,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { SupabaseStatus } from '@/components/SupabaseStatus';
 import { Download, RefreshCw } from 'lucide-react';
 import { SocialLogin } from './components/SocialLogin';
-import { supabase } from './lib/supabase';
+import { supabaseClient, isSupabaseAvailable } from './lib/supabase-client';
 import { processSpecialCSV } from '@/lib/csv-processor';
 import { logError } from '@/lib/error-handler';
 
@@ -119,7 +119,7 @@ export default function HomePage() {
 
   useEffect(() => {
     async function checkUser() {
-      if (!supabase) {
+      if (!isSupabaseAvailable()) {
         setUser(null);
         setLoadingUser(false);
         return;
@@ -127,7 +127,7 @@ export default function HomePage() {
       
       try {
         // Get current session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabaseClient!.auth.getSession();
         
         if (session?.user) {
           setUser(session.user);
@@ -136,7 +136,7 @@ export default function HomePage() {
         }
         
         // If no session, try to get user directly
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabaseClient!.auth.getUser();
         
         if (user) {
           setUser(user);
@@ -160,7 +160,7 @@ export default function HomePage() {
     checkUser();
     
     // Listen for auth changes
-    const { data: { subscription } } = supabase?.auth.onAuthStateChange(
+    const { data: { subscription } } = supabaseClient?.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user);
@@ -209,8 +209,8 @@ export default function HomePage() {
   };
 
   const handleLogout = async () => {
-    if (supabase) {
-      await supabase.auth.signOut();
+    if (isSupabaseAvailable()) {
+      await supabaseClient!.auth.signOut();
     }
   };
 

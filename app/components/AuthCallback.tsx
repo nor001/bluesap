@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -13,14 +13,14 @@ export default function AuthCallback() {
       setLoading(true);
       setError(null);
       
-      if (!supabase) {
-        setError('Supabase no está configurado.');
+      if (!isSupabaseAvailable()) {
+        setError('Error de configuración. Por favor, contacta al administrador.');
         setLoading(false);
         return;
       }
       
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        const { data: { user }, error: userError } = await supabaseClient!.auth.getUser();
         
         if (userError) {
           setError(`Error obteniendo usuario: ${userError.message}`);
@@ -46,7 +46,7 @@ export default function AuthCallback() {
           const errorData = await res.json().catch(() => ({}));
           const errorMsg = errorData.error || 'Tu correo no está invitado. Solicita acceso al administrador.';
           
-          await supabase.auth.signOut();
+          await supabaseClient!.auth.signOut();
           setError(errorMsg);
           setLoading(false);
         }

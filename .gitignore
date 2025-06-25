@@ -115,3 +115,6 @@ temp/
 
 # Local Netlify folder
 .netlify
+
+# Development system documentation (user-specific)
+.cursor/
