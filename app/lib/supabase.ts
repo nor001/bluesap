@@ -28,7 +28,7 @@ export const CSV_METADATA_TABLE = 'csv_metadata';
 
 // Interface for CSV metadata
 export interface CSVMetadata {
-  id: number;
+  id?: number;
   uploaded_at: string;
   file_size: number;
   uploaded_by?: string;
