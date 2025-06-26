@@ -29,92 +29,73 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     const file = formData.get('csv') as File;
 
     if (!file) {
-      const error = handleUploadError({ message: 'No file provided' });
-      logError(error, 'Upload API');
-      return NextResponse.json(errorToResponse(error), { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'No file provided' 
+      });
     }
 
-    // Validate file using centralized validation
-    if (!validateCSVFile(file)) {
-      const error = handleUploadError({ message: 'Invalid file. Must be a CSV file under 50MB' });
-      logError(error, 'Upload API');
-      return NextResponse.json(errorToResponse(error), { status: 400 });
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'File must be a CSV' 
+      });
+    }
+
+    // Validate file size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'File size must be less than 50MB' 
+      });
     }
 
     // Read file content
-    const text = await file.text();
-
-    // Process CSV using centralized processor with special case preservation
-    let processedData;
-    try {
-      processedData = processSpecialCSV(text);
-    } catch (csvError) {
-      const error = handleCSVError(csvError);
-      logError(error, 'Upload API');
-      return NextResponse.json(errorToResponse(error), { status: 400 });
-    }
-
+    const csvText = await file.text();
+    
+    // Process CSV with special format handling
+    const processedData = processSpecialCSV(csvText);
+    
     if (processedData.rowCount === 0) {
-      const error = handleCSVError({ message: 'No valid data found in CSV file' });
-      logError(error, 'Upload API');
-      return NextResponse.json(errorToResponse(error), { status: 400 });
+      return NextResponse.json({ 
+        success: false, 
+        error: 'No valid data found in CSV' 
+      });
     }
 
-    // Try to upload to Supabase Storage first
-    let uploadSuccess = false;
-    let metadata: any = undefined;
+    // Create metadata
+    const metadata = createCSVMetadata(
+      processedData.data,
+      file.size,
+      'user'
+    );
 
+    // Try to update metadata in Supabase
     try {
-      // Convert back to original format for Supabase storage (preserving special format)
-      const originalFormat = convertToOriginalCSVFormat(processedData.data);
-      const originalBlob = new Blob([originalFormat], { type: 'text/csv' });
-      const originalFile = new File([originalBlob], file.name, { type: 'text/csv' });
-
-      uploadSuccess = await uploadFileToSupabase(originalFile);
-      
-      if (uploadSuccess) {
-        // Create metadata using centralized function
-        const metadataToUpdate = createCSVMetadata(
-          processedData.data, 
-          file.size, 
-          'user'
-        );
-
-        const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
-        
-        if (metadataUpdated) {
-          metadata = metadataToUpdate;
-        }
-      }
-    } catch (supabaseError) {
-      // Supabase failed, use local fallback
-      const error = handleSupabaseError(supabaseError);
-      logError(error, 'Upload API - Supabase Fallback');
-      // Continue with fallback - don't return error
+      await updateCSVMetadata(metadata);
+    } catch (error) {
+      // Supabase not available, continue with fallback
     }
 
-    // If Supabase failed, use local fallback
-    if (!uploadSuccess) {
-      // Create metadata for fallback
-      const fallbackMetadata = createCSVMetadata(
-        processedData.data, 
-        file.size, 
-        'user (local)'
-      );
-      
-      setFallbackData(processedData.data, fallbackMetadata);
-      metadata = fallbackMetadata;
+    // Save to fallback storage
+    try {
+      setFallbackData(processedData.data, metadata);
+    } catch (error) {
+      // Fallback storage failed, continue anyway
     }
 
     return NextResponse.json({
       success: true,
       data: processedData.data,
-      metadata: metadata
+      metadata: metadata,
+      message: `Successfully processed ${processedData.rowCount} rows`
     });
 
   } catch (error) {
-    const appError = handleUploadError(error);
-    logError(appError, 'Upload API');
-    return NextResponse.json(errorToResponse(appError), { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Upload failed' 
+    });
   }
 } 

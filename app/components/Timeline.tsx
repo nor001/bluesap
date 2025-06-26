@@ -34,9 +34,13 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
   }, []);
 
   const timelineData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    if (!data || data.length === 0) {
+      return [];
+    }
 
     const ganttData: TimelineData[] = [];
+    let processedCount = 0;
+    let skippedCount = 0;
     
     for (const row of data) {
       const startDate = row[planConfig.start_date_col];
@@ -70,6 +74,9 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
         };
         
         ganttData.push(timelineItem);
+        processedCount++;
+      } else {
+        skippedCount++;
       }
     }
     
@@ -181,6 +188,59 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
     responsive: true,
   };
 
+  // Force Plotly z-index after render
+  useEffect(() => {
+    if (isClient && timelineData.length > 0) {
+      // Add a small delay to ensure Plotly has finished rendering
+      const timer = setTimeout(() => {
+        // Force all Plotly elements to have low z-index
+        const plotlyElements = document.querySelectorAll('.js-plotly-plot, .plotly, .plotly .main-svg, .plotly .bglayer, .plotly .annotation');
+        plotlyElements.forEach((element) => {
+          if (element instanceof HTMLElement) {
+            element.style.zIndex = '1';
+          }
+        });
+        
+        // Also force any elements with high z-index to be lower
+        const highZIndexElements = document.querySelectorAll('[style*="z-index: 1000"], [style*="z-index: 1001"], [style*="z-index: 1002"], [style*="z-index: 1003"], [style*="z-index: 1004"], [style*="z-index: 1005"]');
+        highZIndexElements.forEach((element) => {
+          if (element instanceof HTMLElement) {
+            element.style.zIndex = '1';
+          }
+        });
+      }, 100); // 100ms delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isClient, timelineData.length]);
+
+  // Show data summary when data exists but timeline is empty
+  if (data && data.length > 0 && timelineData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Data Available but No Timeline</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Found {data.length} rows, but no valid timeline data.
+          </p>
+          <div className="text-sm text-gray-600 dark:text-gray-400 text-left max-w-md mx-auto">
+            <p><strong>Required columns:</strong></p>
+            <ul className="list-disc list-inside mt-2">
+              <li>Start Date: {planConfig.start_date_col}</li>
+              <li>End Date: {planConfig.end_date_col}</li>
+              <li>Resource: {planConfig.resource_col}</li>
+              <li>Hours: {planConfig.hours_col}</li>
+            </ul>
+            <p className="mt-2">
+              <strong>Available columns:</strong> {Object.keys(data[0] || {}).join(', ')}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (timelineData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -207,7 +267,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full relative z-10">
       <Plot
         data={plotData}
         layout={layout}

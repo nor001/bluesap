@@ -118,3 +118,4 @@ temp/
 
 # Development system documentation (user-specific)
 .cursor/
+*.csv

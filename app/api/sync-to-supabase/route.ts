@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToSupabase, updateCSVMetadata } from '@/lib/supabase';
+import { uploadFileToSupabase, updateCSVMetadata, CSV_FILE_NAME } from '@/lib/supabase';
 import { convertToOriginalCSVFormat, createCSVMetadata } from '@/lib/csv-processor';
 
 interface SyncResponse {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 
     // Create a File object from the original format
     const blob = new Blob([originalFormat], { type: 'text/csv' });
-    const file = new File([blob], 'central.csv', { type: 'text/csv' });
+    const file = new File([blob], CSV_FILE_NAME, { type: 'text/csv' });
 
     // Try to upload to Supabase Storage
     const uploadSuccess = await uploadFileToSupabase(file);

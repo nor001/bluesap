@@ -5,6 +5,8 @@ import { AppConfig } from './config';
 import { convertToSimpleCSV } from './csv-processor';
 import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
 import { logError } from './error-handler';
+import { auditedFetch } from './auditedFetch';
+import { calculateAssignments } from './assignment-calculator';
 
 interface AppStore extends AppState {
   // Actions
@@ -20,12 +22,18 @@ interface AppStore extends AppState {
   setCSVMetadata: (metadata: CSVMetadata) => void;
   syncToSupabase: () => Promise<boolean>;
   loadFallbackData: () => void;
+  setCSVData: (csvData: any[]) => void;
+  loadCachedData: () => boolean;
+  saveToCache: (data: any[], metadata: any) => void;
+  clearCache: () => void;
 }
 
 const initialFilters: FilterState = {
   selected_proy: "Todos",
   selected_modulo: "Todos", 
-  selected_grupo: "Todos"
+  selected_grupo: "Todos",
+  id_filter: "",
+  consultor_ntt: "Todos"
 };
 
 const initialMetrics: MetricsData = {
@@ -35,7 +43,21 @@ const initialMetrics: MetricsData = {
   unassigned_tasks: 0
 };
 
-export const useAppStore = create<AppStore>()(
+// Debounce mechanism for API calls
+let lastMetadataCall = 0;
+let lastAssignCall = 0;
+
+// Lazy initialization for better performance
+let storeInstance: ReturnType<typeof createAppStore> | null = null;
+
+export const useAppStore = () => {
+  if (!storeInstance) {
+    storeInstance = createAppStore();
+  }
+  return storeInstance();
+};
+
+export const createAppStore = () => create<AppStore>()(
   persist(
     (set, get) => ({
       // Initial state
@@ -56,12 +78,11 @@ export const useAppStore = create<AppStore>()(
           const formData = new FormData();
           formData.append('csv', file);
           
-          const response = await fetch('/api/upload', {
+          const result = await auditedFetch('/api/upload', {
             method: 'POST',
             body: formData,
+            component: 'Store.uploadCSV'
           });
-          
-          const result = await response.json();
           
           if (result.success && result.data) {
             set({ 
@@ -69,8 +90,10 @@ export const useAppStore = create<AppStore>()(
               loading: false 
             });
             
-            // Automatically assign resources after upload
-            get().assignResources();
+            // Automatically assign resources after upload (with debounce)
+            setTimeout(() => {
+              get().assignResources();
+            }, 100);
           } else {
             set({ loading: false });
             throw new Error(result.error || 'Upload failed');
@@ -89,37 +112,35 @@ export const useAppStore = create<AppStore>()(
       },
 
       assignResources: async () => {
-        const { csvData, planType } = get();
+        const { csvData, planType, assignedData } = get();
         
         if (!csvData || csvData.length === 0) {
           return;
         }
+
+        // Add debounce to prevent multiple rapid calls
+        const now = Date.now();
+        const DEBOUNCE_DELAY = 1000; // 1 second
+
+        if (now - lastAssignCall < DEBOUNCE_DELAY) {
+          return;
+        }
+
+        lastAssignCall = now;
         
         set({ loading: true });
         
         try {
-          const response = await fetch('/api/assign', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              data: csvData,
-              planType: planType
-            }),
+          // Use local calculation instead of API call
+          const newAssignedData = calculateAssignments(csvData, planType);
+          
+          set({ 
+            assignedData: newAssignedData,
+            loading: false 
           });
           
-          const result = await response.json();
-          
-          if (result.success && result.data) {
-            set({ 
-              assignedData: result.data,
-              loading: false 
-            });
-          } else {
-            set({ loading: false });
-            throw new Error(result.error || 'Assignment failed');
-          }
+          // Verify the state was updated
+          const updatedState = get();
         } catch (error) {
           set({ loading: false });
           logError({
@@ -166,13 +187,24 @@ export const useAppStore = create<AppStore>()(
       },
 
       fetchCSVMetadata: async () => {
+        // Add debounce to prevent multiple rapid calls
+        const now = Date.now();
+        const DEBOUNCE_DELAY = 1000; // 1 second
+
+        if (now - lastMetadataCall < DEBOUNCE_DELAY) {
+          return;
+        }
+
+        lastMetadataCall = now;
+
         try {
-          const response = await fetch('/api/csv-metadata');
-          if (response.ok) {
-            const result = await response.json();
-            if (result.success) {
-              set({ csvMetadata: result.metadata });
-            }
+          const result = await auditedFetch('/api/csv-metadata', {
+            method: 'GET',
+            component: 'Store.fetchCSVMetadata'
+          });
+          
+          if (result.success) {
+            set({ csvMetadata: result.metadata });
           }
         } catch (error) {
           // Silently fail - metadata is optional
@@ -201,12 +233,8 @@ export const useAppStore = create<AppStore>()(
               csvMetadata: fallbackData.metadata
             });
             
-            // Trigger resource assignment if we have data
-            if (fallbackData.csvData.length > 0) {
-              setTimeout(() => {
-                get().assignResources();
-              }, 100);
-            }
+            // Don't trigger resource assignment here - let the page useEffect handle it
+            // This prevents duplicate calls
           }
         } catch (error) {
           logError({
@@ -216,6 +244,68 @@ export const useAppStore = create<AppStore>()(
             timestamp: Date.now(),
             userFriendly: false
           }, 'Store');
+        }
+      },
+
+      // Load cached data from localStorage
+      loadCachedData: () => {
+        try {
+          if (typeof window === 'undefined') {
+            return false;
+          }
+          
+          const cached = localStorage.getItem('bluesap-csv-cache');
+          
+          if (!cached) {
+            return false;
+          }
+          
+          const { data, metadata, timestamp } = JSON.parse(cached);
+          const now = Date.now();
+          const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (increased from 5)
+          
+          if (now - timestamp < CACHE_DURATION && data && data.length > 0) {
+            set({ csvData: data, csvMetadata: metadata });
+            return true;
+          } else {
+            // Clear expired cache
+            localStorage.removeItem('bluesap-csv-cache');
+            return false;
+          }
+        } catch (error) {
+          // Clear corrupted cache
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('bluesap-csv-cache');
+          }
+          return false;
+        }
+      },
+
+      // Save data to cache
+      saveToCache: (data: any[], metadata: any) => {
+        try {
+          if (typeof window === 'undefined') return;
+          
+          const cacheData = {
+            data,
+            metadata,
+            timestamp: Date.now()
+          };
+          
+          localStorage.setItem('bluesap-csv-cache', JSON.stringify(cacheData));
+        } catch (error) {
+          // Silently fail - cache is optional
+        }
+      },
+
+      // Clear cache
+      clearCache: () => {
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('bluesap-csv-cache');
+          }
+        } catch (error) {
+          // Silently fail
         }
       },
 
@@ -229,7 +319,7 @@ export const useAppStore = create<AppStore>()(
         
         try {
           // Use the dedicated sync endpoint
-          const response = await fetch('/api/sync-to-supabase', {
+          const result = await auditedFetch('/api/sync-to-supabase', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -237,9 +327,8 @@ export const useAppStore = create<AppStore>()(
             body: JSON.stringify({
               data: csvData
             }),
+            component: 'Store.syncToSupabase'
           });
-          
-          const result = await response.json();
           
           if (result.success) {
             // Data successfully synced to Supabase
@@ -258,6 +347,15 @@ export const useAppStore = create<AppStore>()(
         
         return false;
       },
+
+      setCSVData: (csvData) => {
+        set({ csvData });
+      },
+
+      // Rehydration callback
+      onRehydrateStorage: () => (state: any) => {
+        // Store rehydrated successfully
+      },
     }),
     {
       name: 'bluesap-store',
@@ -267,6 +365,7 @@ export const useAppStore = create<AppStore>()(
         metrics: state.metrics,
         timelineData: state.timelineData,
         csvMetadata: state.csvMetadata,
+        assignedData: state.assignedData,
       }),
     }
   )

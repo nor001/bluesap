@@ -22,6 +22,8 @@ export interface FilterState {
   selected_proy: string;
   selected_modulo: string;
   selected_grupo: string;
+  id_filter: string;
+  consultor_ntt: string;
 }
 
 export interface TimelineData {

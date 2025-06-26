@@ -93,6 +93,32 @@ export class AppConfig {
         assigned_title: "Assigned ABAPs",
         use_group_based_assignment: true,
       };
+    } else if (planType === "Plan de Mantenimiento") {
+      return {
+        resource_col: "abap_asignado",
+        hours_col: "plan_abap_dev_time",
+        available_date_col: "esfu_disponible",
+        plan_date_col: "plan_abap_dev_ini",
+        start_date_col: "Fecha Inicio Plan",
+        end_date_col: "Fecha Fin Plan",
+        resource_title: "Developer",
+        resources_title: "Developers",
+        assigned_title: "Assigned ABAPs",
+        use_group_based_assignment: true,
+      };
+    } else if (planType === "Plan de Soporte") {
+      return {
+        resource_col: "abap_asignado",
+        hours_col: "plan_abap_dev_time",
+        available_date_col: "esfu_disponible",
+        plan_date_col: "plan_abap_dev_ini",
+        start_date_col: "Fecha Inicio Plan",
+        end_date_col: "Fecha Fin Plan",
+        resource_title: "Developer",
+        resources_title: "Developers",
+        assigned_title: "Assigned ABAPs",
+        use_group_based_assignment: true,
+      };
     } else if (planType === "Plan de Pruebas") {
       return {
         resource_col: "abap_asignado",

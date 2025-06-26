@@ -34,14 +34,7 @@ export function SupabaseStatus() {
   }, []);
 
   if (status === 'checking') {
-    return (
-      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3">
-        <div className="flex items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-          <span className="text-sm text-blue-700 dark:text-blue-300">Verificando conexión...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (status === 'error') {
@@ -57,14 +50,5 @@ export function SupabaseStatus() {
     );
   }
 
-  return (
-    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-3">
-      <div className="flex items-center">
-        <span className="text-green-600 dark:text-green-400 mr-2">✅</span>
-        <span className="text-sm text-green-700 dark:text-green-300">
-          Conectado a Supabase
-        </span>
-      </div>
-    </div>
-  );
+  return null;
 } 
