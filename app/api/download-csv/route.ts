@@ -11,7 +11,7 @@ const CACHE_DURATION = process.env.NODE_ENV === 'development'
   : 5 * 60 * 1000;  // 5 minutes in production
 
 // Function to clear cache (useful for testing or manual invalidation)
-export function clearCSVCache(): void {
+function clearCSVCache(): void {
   csvCache = null;
 }
 
