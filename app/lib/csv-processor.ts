@@ -11,6 +11,7 @@ export interface ProcessedCSVData {
 }
 
 export interface CSVMetadata {
+  id?: number;
   uploaded_at: string;
   file_size: number;
   uploaded_by: string;
@@ -164,14 +165,17 @@ export function convertToSimpleCSV(data: CSVRow[]): string {
  * @param data - Datos procesados
  * @param fileSize - Tamaño del archivo original
  * @param uploadedBy - Quién subió el archivo
+ * @param id - ID opcional para la metadata
  * @returns Metadata del CSV
  */
 export function createCSVMetadata(
   data: CSVRow[], 
   fileSize: number, 
-  uploadedBy: string = 'user'
+  uploadedBy: string = 'user',
+  id?: number
 ): CSVMetadata {
   return {
+    id,
     uploaded_at: new Date().toISOString(),
     file_size: fileSize,
     uploaded_by: uploadedBy,
