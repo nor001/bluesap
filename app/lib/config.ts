@@ -13,51 +13,51 @@ export class AppConfig {
   
   // Resource configurations with validation
   static DEVELOPERS_CONFIG_GRID: Record<string, ResourceConfig> = {
-    "Fabricio Sánchez": { level: "SENIOR", max_tasks: 15, color: "#FF6B6B" },
-    "Oscar Castellanos": { level: "SENIOR", max_tasks: 15, color: "#4ECDC4" },
-    "Gabriel Huamani": { level: "SENIOR", max_tasks: 15, color: "#45B7D1" },
-    "Luiggi Gonzales": { level: "SENIOR", max_tasks: 15, color: "#96CEB4" },
-    "Norman Tinco": { level: "SENIOR", max_tasks: 4, color: "#FFEAA7" },
-    "Angel Burga": { level: "SENIOR", max_tasks: 15, color: "#FAEAA7" },
-    "Oscar De Lama": { level: "SENIOR", max_tasks: 15, color: "#FEEAA7" },
+    "Fabricio Sánchez": { level: "SENIOR", max_tasks: 15 },
+    "Oscar Castellanos": { level: "SENIOR", max_tasks: 15 },
+    "Gabriel Huamani": { level: "SENIOR", max_tasks: 15 },
+    "Luiggi Gonzales": { level: "SENIOR", max_tasks: 15 },
+    "Norman Tinco": { level: "SENIOR", max_tasks: 4 },
+    "Angel Burga": { level: "SENIOR", max_tasks: 15 },
+    "Oscar De Lama": { level: "SENIOR", max_tasks: 15 },
   };
   
   static DEVELOPERS_CONFIG_FSM: Record<string, ResourceConfig> = {
-    "FSM1": { level: "SENIOR", max_tasks: 15, color: "#9370DB" },
-    "FSM2": { level: "SENIOR", max_tasks: 15, color: "#32CD32" },
+    "FSM1": { level: "SENIOR", max_tasks: 15 },
+    "FSM2": { level: "SENIOR", max_tasks: 15 },
   };
   
   static DEVELOPERS_CONFIG_C4E: Record<string, ResourceConfig> = {
-    "c4e1": { level: "SENIOR", max_tasks: 15, color: "#FF6347" },
+    "C4E1": { level: "SENIOR", max_tasks: 15 },
   };
   
   static DEVELOPERS_CONFIG_ERP: Record<string, ResourceConfig> = {
-    "Luis Ore": { level: "SENIOR", max_tasks: 6, color: "#FF4500" },
-    "Angel Burga": { level: "SENIOR", max_tasks: 15, color: "#1E90FF" },
-    "Richard Galán": { level: "SEMI_SENIOR", max_tasks: 12, color: "#32CD32" },
-    "Cesar Rivero": { level: "SENIOR", max_tasks: 7, color: "#27AE60" },
+    "Luis Ore": { level: "SENIOR", max_tasks: 6 },
+    "Angel Burga": { level: "SENIOR", max_tasks: 15 },
+    "Richard Galán": { level: "SEMI_SENIOR", max_tasks: 12 },
+    "Cesar Rivero": { level: "SENIOR", max_tasks: 7 },
   };
   
   static DEVELOPERS_CONFIG_LOC: Record<string, ResourceConfig> = {
-    "Jhonatan Colina": { level: "PLENO", max_tasks: 6, color: "#FF7F50" },
-    "Jose Aguilar": { level: "PLENO", max_tasks: 12, color: "#20B2AA" },
+    "Jhonatan Colina": { level: "PLENO", max_tasks: 6 },
+    "Jose Aguilar": { level: "PLENO", max_tasks: 12 },
   };
   
   static DEVELOPERS_CONFIG_PORTAL: Record<string, ResourceConfig> = {
-    "Jhonatan Colina": { level: "PLENO", max_tasks: 6, color: "#FF7F50" },
-    "Jorge Clemente": { level: "JUNIOR", max_tasks: 8, color: "#FFB347" },
-    "Jose Urbina": { level: "JUNIOR", max_tasks: 8, color: "#87CEEB" },
+    "Jhonatan Colina": { level: "PLENO", max_tasks: 6 },
+    "Jorge Clemente": { level: "JUNIOR", max_tasks: 8 },
+    "Jose Urbina": { level: "JUNIOR", max_tasks: 8 },
   };
   
   static DEVELOPERS_CONFIG_HCM: Record<string, ResourceConfig> = {
-    "Cesar Rivero": { level: "SENIOR", max_tasks: 7, color: "#27AE60" },
-    "Katheryn Quiroz": { level: "SEMI_SENIOR", max_tasks: 12, color: "#E91E63" },
+    "Cesar Rivero": { level: "SENIOR", max_tasks: 7 },
+    "Katheryn Quiroz": { level: "SEMI_SENIOR", max_tasks: 12 },
   };
   
   static TESTERS_CONFIG: Record<string, ResourceConfig> = {
-    "Tester QA 1": { level: "SENIOR", max_tasks: 15, color: "#FF6B6B" },
-    "Tester QA 2": { level: "PLENO", max_tasks: 12, color: "#4ECDC4" },
-    "Tester QA 3": { level: "JUNIOR", max_tasks: 10, color: "#45B7D1" },
+    "Tester QA 1": { level: "SENIOR", max_tasks: 15 },
+    "Tester QA 2": { level: "PLENO", max_tasks: 12 },
+    "Tester QA 3": { level: "JUNIOR", max_tasks: 10 },
   };
   
   // Group mapping
@@ -165,7 +165,7 @@ export class AppConfig {
       // Validate resource configurations
       for (const [groupName, config] of Object.entries(AppConfig.GROUP_CONFIG_MAPPING)) {
         for (const [name, details] of Object.entries(config)) {
-          if (!details.level || !details.max_tasks || !details.color) {
+          if (!details.level || !details.max_tasks) {
             throw new ConfigError(`Invalid resource config for ${name} in ${groupName}`);
           }
         }
@@ -173,7 +173,7 @@ export class AppConfig {
       
       // Validate testers configuration
       for (const [name, details] of Object.entries(AppConfig.TESTERS_CONFIG)) {
-        if (!details.level || !details.max_tasks || !details.color) {
+        if (!details.level || !details.max_tasks) {
           throw new ConfigError(`Invalid tester config for ${name}`);
         }
       }

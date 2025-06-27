@@ -2,7 +2,6 @@
 export interface ResourceConfig {
   level: 'SENIOR' | 'SEMI_SENIOR' | 'PLENO' | 'JUNIOR';
   max_tasks: number;
-  color: string;
 }
 
 export interface PlanConfig {
