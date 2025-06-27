@@ -28,13 +28,16 @@ interface TimelineProps {
 
 export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours = false }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    setDebugInfo(`Client: true, Data length: ${data?.length || 0}`);
+  }, [data?.length]);
 
   const timelineData = useMemo(() => {
     if (!data || data.length === 0) {
+      setDebugInfo('No data provided');
       return [];
     }
 
@@ -119,7 +122,8 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
         ganttData.push(timelineItem);
       });
     }
-    
+
+    setDebugInfo(`Processed: ${processedCount}, Skipped: ${skippedCount}, Unassigned: ${unassignedTasks.length}, Total: ${ganttData.length}`);
     return ganttData;
   }, [data, planConfig, extraHoverCols, preciseHours]);
 
@@ -327,6 +331,37 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
           <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
           <p className="text-gray-500 dark:text-gray-400">Preparing interactive chart</p>
+          {debugInfo && (
+            <p className="text-xs text-gray-400 mt-2">Debug: {debugInfo}</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for production issues
+  if (isClient && timelineData.length === 0 && data && data.length > 0) {
+    return (
+      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="text-center">
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">⚠️</div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Timeline Processing Issue</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Data available but timeline not rendering. This might be a production issue.
+          </p>
+          <div className="text-sm text-gray-600 dark:text-gray-400 text-left max-w-md mx-auto">
+            <p><strong>Debug Info:</strong></p>
+            <p>Data Length: {data.length}</p>
+            <p>Timeline Data: {timelineData.length}</p>
+            <p>Client: {isClient ? 'Yes' : 'No'}</p>
+            <p>Debug: {debugInfo}</p>
+            <p className="mt-2">
+              <strong>Sample Data:</strong>
+            </p>
+            <pre className="text-xs bg-gray-100 dark:bg-gray-700 p-2 rounded mt-2 overflow-auto max-h-32">
+              {JSON.stringify(data[0], null, 2)}
+            </pre>
+          </div>
         </div>
       </div>
     );
@@ -334,6 +369,11 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
 
   return (
     <div className="w-full relative z-10">
+      {debugInfo && (
+        <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded">
+          Debug: {debugInfo}
+        </div>
+      )}
       <Plot
         data={plotData}
         layout={layout}
