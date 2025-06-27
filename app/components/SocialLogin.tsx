@@ -6,7 +6,7 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
   const [loading, setLoading] = useState(false);
 
   // Lógica de login social
-  const handleLogin = async (provider: 'google' | 'azure') => {
+  const handleLogin = async () => {
     setError(null);
     setLoading(true);
     
@@ -18,9 +18,8 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
         return;
       }
       
-      const providerName = provider === 'azure' ? 'azure' : 'google';
       const { data, error } = await supabaseClient!.auth.signInWithOAuth({
-        provider: providerName,
+        provider: 'google',
         options: {
           redirectTo: window.location.origin + '/auth/callback',
         },
@@ -52,7 +51,7 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
             ? 'opacity-50 cursor-not-allowed' 
             : 'hover:bg-gray-50'
         }`}
-        onClick={() => handleLogin('google')}
+        onClick={handleLogin}
         disabled={loading}
       >
         {loading ? (
@@ -64,28 +63,6 @@ export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
           <>
             <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
             Continuar con Google
-          </>
-        )}
-      </button>
-      
-      <button
-        className={`w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center transition-colors ${
-          loading 
-            ? 'opacity-50 cursor-not-allowed' 
-            : 'hover:bg-gray-50'
-        }`}
-        onClick={() => handleLogin('azure')}
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600 mr-2"></div>
-            Conectando...
-          </>
-        ) : (
-          <>
-            <img src="https://www.svgrepo.com/show/303205/microsoft.svg" alt="Microsoft" className="h-5 w-5 mr-2" />
-            Continuar con Microsoft
           </>
         )}
       </button>
