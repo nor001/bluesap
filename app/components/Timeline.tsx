@@ -79,6 +79,46 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
         skippedCount++;
       }
     }
+
+    // Add unassigned tasks at the end
+    const unassignedTasks = data.filter(row => {
+      const startDate = row[planConfig.start_date_col];
+      const endDate = row[planConfig.end_date_col];
+      const resource = row[planConfig.resource_col];
+      
+      return !startDate || !endDate || !resource || 
+             resource === '' || resource === 'None' || resource === 'nan';
+    });
+
+    // Add unassigned tasks as a special section
+    if (unassignedTasks.length > 0) {
+      const baseDate = new Date();
+      baseDate.setHours(9, 0, 0, 0);
+      
+      unassignedTasks.forEach((row, index) => {
+        const hours = row[planConfig.hours_col] || 8.0;
+        const start = new Date(baseDate);
+        start.setDate(start.getDate() + index);
+        
+        const end = new Date(start);
+        end.setDate(end.getDate() + Math.max(1, Math.ceil(hours / 8)));
+        
+        const timelineItem: TimelineData = {
+          Task: `${row.ID || `Task_${ganttData.length + index}`} (PENDIENTE)`,
+          Start: start.toISOString(),
+          Finish: end.toISOString(),
+          Resource: 'TAREAS PENDIENTES',
+          Hours: hours,
+          dev_group: String(row.grupo_dev || 'N/A'),
+          ...(extraHoverCols.reduce((acc, col) => {
+            acc[col] = row[col] || '';
+            return acc;
+          }, {} as Record<string, any>))
+        };
+        
+        ganttData.push(timelineItem);
+      });
+    }
     
     return ganttData;
   }, [data, planConfig, extraHoverCols, preciseHours]);
@@ -131,6 +171,9 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
         dynamicIndex++;
       }
     });
+
+    // Special color for pending tasks
+    colorMap['TAREAS PENDIENTES'] = '#FF6B6B'; // Red color for pending tasks
 
     // Create hover columns
     const hoverCols = ['Hours', 'dev_group', ...extraHoverCols];
