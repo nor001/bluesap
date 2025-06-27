@@ -104,9 +104,32 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
       resourceConfig = AppConfig.TESTERS_CONFIG;
     }
     
+    // Create color mapping for all resources including dynamic ones
     const colorMap: Record<string, string> = {};
+    const colors = [
+      "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+      "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
+      "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
+      "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
+      "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
+    ];
+    
+    // First, add colors for static resources
     Object.entries(resourceConfig).forEach(([resource, config]) => {
       colorMap[resource] = config.color;
+    });
+    
+    // Then, add colors for dynamic resources (Senior_01, Senior_02, etc.)
+    const allResources = [...new Set(timelineData.map(item => item.Resource))];
+    let dynamicIndex = 0;
+    
+    allResources.forEach(resource => {
+      if (!colorMap[resource]) {
+        // This is a dynamic resource, assign a color
+        const colorIndex = dynamicIndex % colors.length;
+        colorMap[resource] = colors[colorIndex];
+        dynamicIndex++;
+      }
     });
 
     // Create hover columns
@@ -152,7 +175,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
 
   const layout = useMemo(() => ({
     title: `📅 Planning Timeline (${planConfig.resource_title})`,
-    height: 600,
+    height: 800,
     paper_bgcolor: 'rgba(0,0,0,0)',
     plot_bgcolor: 'rgba(0,0,0,0)',
     font: {

@@ -18,6 +18,8 @@ export class AppConfig {
     "Gabriel Huamani": { level: "SENIOR", max_tasks: 15, color: "#45B7D1" },
     "Luiggi Gonzales": { level: "SENIOR", max_tasks: 15, color: "#96CEB4" },
     "Norman Tinco": { level: "SENIOR", max_tasks: 4, color: "#FFEAA7" },
+    "Angel Burga": { level: "SENIOR", max_tasks: 15, color: "#FAEAA7" },
+    "Oscar De Lama": { level: "SENIOR", max_tasks: 15, color: "#FEEAA7" },
   };
   
   static DEVELOPERS_CONFIG_FSM: Record<string, ResourceConfig> = {

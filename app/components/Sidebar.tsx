@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { FilterState } from '@/lib/types';
-import { ChevronDown, ChevronRight, Filter, Clock, Upload, FileText } from 'lucide-react';
+import { ChevronDown, ChevronRight, Filter, Clock, Upload, FileText, Download } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 import { format } from 'date-fns';
@@ -379,6 +379,47 @@ export default function Sidebar() {
               </div>
             </div>
           </div>
+
+          {/* Download Assigned Data Button */}
+          {assignedData.length > 0 && (
+            <div className="p-4 pt-2">
+              <button
+                onClick={() => {
+                  const handleExport = (data: any[], filename: string) => {
+                    const csvContent = [
+                      // Headers
+                      Object.keys(data[0] || {}).join(','),
+                      // Data rows
+                      ...data.map(row => 
+                        Object.values(row).map(value => 
+                          typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+                        ).join(',')
+                      )
+                    ].join('\n');
+
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                  };
+                  
+                  handleExport(assignedData, 'datos-asignados.csv');
+                }}
+                className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 font-medium"
+              >
+                <Download className="h-4 w-4" />
+                <span>Descargar CSV Asignado</span>
+              </button>
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                Incluye ABAPs asignados y fechas calculadas
+              </p>
+            </div>
+          )}
         </div>
       )}
     </>

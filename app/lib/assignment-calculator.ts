@@ -104,6 +104,30 @@ function checkConflict(
   return false;
 }
 
+// Generate dynamic senior consultants with unique colors
+function generateDynamicSeniorConsultants(count: number): Record<string, any> {
+  const dynamicConsultants: Record<string, any> = {};
+  const colors = [
+    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+    "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
+    "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
+    "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
+    "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
+  ];
+  
+  for (let i = 1; i <= count; i++) {
+    const consultantName = `Senior_${i.toString().padStart(2, '0')}`;
+    const colorIndex = (i - 1) % colors.length;
+    dynamicConsultants[consultantName] = {
+      level: "SENIOR",
+      max_tasks: 15,
+      color: colors[colorIndex]
+    };
+  }
+  
+  return dynamicConsultants;
+}
+
 export function calculateAssignments(data: any[], planType: string): any[] {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return [];
@@ -161,6 +185,7 @@ export function calculateAssignments(data: any[], planType: string): any[] {
   unassigned.sort((a, b) => (b[planConfig.hours_col] || 0) - (a[planConfig.hours_col] || 0));
 
   let assignedCount = 0;
+  let dynamicConsultantIndex = 1;
 
   for (const row of unassigned) {
     const hours = row[planConfig.hours_col] || 8.0;
@@ -210,6 +235,40 @@ export function calculateAssignments(data: any[], planType: string): any[] {
         bestStartDate = startDate;
         bestEndDate = endDate;
         break;
+      }
+    }
+
+    // If no resource found, create a dynamic senior consultant
+    if (!bestResource) {
+      const dynamicConsultantName = `Senior_${dynamicConsultantIndex.toString().padStart(2, '0')}`;
+      
+      // Generate dynamic consultant config
+      const colors = [
+        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
+        "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
+        "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
+        "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
+        "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
+      ];
+      
+      const colorIndex = (dynamicConsultantIndex - 1) % colors.length;
+      const dynamicConfig = {
+        level: "SENIOR",
+        max_tasks: 15,
+        color: colors[colorIndex]
+      };
+      
+      // Add to current resource config
+      currentResourceConfig[dynamicConsultantName] = dynamicConfig;
+      
+      // Calculate dates for the new consultant
+      const [startDate, endDate] = calculateWorkingDates(baseDate, hours, holidays);
+      
+      if (startDate && endDate) {
+        bestResource = dynamicConsultantName;
+        bestStartDate = startDate;
+        bestEndDate = endDate;
+        dynamicConsultantIndex++;
       }
     }
 
