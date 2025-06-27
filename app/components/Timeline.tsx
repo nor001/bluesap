@@ -140,6 +140,24 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
       }];
     }
 
+    // Validate timeline data before processing
+    const validTimelineData = timelineData.filter(item => {
+      return item.Start && item.Finish && item.Resource && item.Task;
+    });
+
+    if (validTimelineData.length === 0) {
+      console.error('No valid timeline data found');
+      return [{
+        type: 'scatter',
+        mode: 'text',
+        x: [new Date()],
+        y: ['Invalid data'],
+        text: ['Invalid timeline data'],
+        textposition: 'middle center',
+        showlegend: false,
+      }];
+    }
+
     // Get color mapping from resource configuration
     let resourceConfig: Record<string, any>;
     if (planConfig.resource_title.includes('Developer')) {
@@ -164,7 +182,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
     });
     
     // Then, add colors for dynamic resources (Senior_01, Senior_02, etc.)
-    const allResources = [...new Set(timelineData.map(item => item.Resource))];
+    const allResources = [...new Set(validTimelineData.map(item => item.Resource))];
     let dynamicIndex = 0;
     
     allResources.forEach(resource => {
@@ -183,10 +201,10 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
     const hoverCols = ['Hours', 'dev_group', ...extraHoverCols];
 
     // Group data by resource for Plotly
-    const resources = [...new Set(timelineData.map(item => item.Resource))];
+    const resources = [...new Set(validTimelineData.map(item => item.Resource))];
     
     return resources.map(resource => {
-      const resourceData = timelineData.filter(item => item.Resource === resource);
+      const resourceData = validTimelineData.filter(item => item.Resource === resource);
       
       return {
         type: 'scatter',
@@ -374,14 +392,49 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
           Debug: {debugInfo}
         </div>
       )}
-      <Plot
-        data={plotData}
-        layout={layout}
-        config={config}
-        className="w-full"
-        useResizeHandler={true}
-        style={{ width: '100%', height: '100%' }}
-      />
+      {(() => {
+        try {
+          return (
+            <Plot
+              data={plotData}
+              layout={layout}
+              config={config}
+              className="w-full"
+              useResizeHandler={true}
+              style={{ width: '100%', height: '100%' }}
+              onError={(error) => {
+                console.error('Plotly error:', error);
+              }}
+            />
+          );
+        } catch (error) {
+          console.error('Timeline render error:', error);
+          return (
+            <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
+              <div className="text-center">
+                <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">⚠️</div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Timeline Render Error</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  Error rendering timeline chart. This might be a production issue.
+                </p>
+                <div className="text-sm text-gray-600 dark:text-gray-400 text-left max-w-md mx-auto">
+                  <p><strong>Error Details:</strong></p>
+                  <p>{error instanceof Error ? error.message : 'Unknown error'}</p>
+                  <p className="mt-2">
+                    <strong>Timeline Data Summary:</strong>
+                  </p>
+                  <p>Total Tasks: {timelineData.length}</p>
+                  <p>Resources: {[...new Set(timelineData.map(item => item.Resource))].length}</p>
+                  <p>Date Range: {timelineData.length > 0 ? 
+                    `${new Date(timelineData[0].Start).toLocaleDateString()} - ${new Date(timelineData[timelineData.length-1].Finish).toLocaleDateString()}` : 
+                    'N/A'
+                  }</p>
+                </div>
+              </div>
+            </div>
+          );
+        }
+      })()}
     </div>
   );
 } 
