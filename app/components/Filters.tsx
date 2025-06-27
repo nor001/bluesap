@@ -5,7 +5,11 @@ import { FilterState } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
 
 interface FiltersProps {
-  data: any[];
+  data: Array<{
+    PROY?: string;
+    Módulo?: string;
+    grupo_dev?: string;
+  }>;
   onFilterChange?: (filters: FilterState) => void;
 }
 

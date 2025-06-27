@@ -15,7 +15,7 @@ export function SupabaseStatus() {
       }
 
       try {
-        const { data, error } = await supabaseClient!.auth.getSession();
+        const { error } = await supabaseClient!.auth.getSession();
         
         if (error) {
           setStatus('error');

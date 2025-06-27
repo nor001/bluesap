@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
-export function SocialLogin({ onSuccess }: { onSuccess?: () => void }) {
+export function SocialLogin() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

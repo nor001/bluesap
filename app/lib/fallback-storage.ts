@@ -2,8 +2,8 @@
 // Preserves special CSV format and corporate environment constraints
 
 export interface FallbackData {
-  csvData: any[];
-  metadata: any;
+  csvData: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown> | null;
   timestamp: number;
 }
 
@@ -22,7 +22,7 @@ let memoryCache: FallbackData | null = null;
  * Enhanced fallback storage with local persistence
  * Preserves special CSV format and corporate constraints
  */
-export function setFallbackData(csvData: any[], metadata: any) {
+export function setFallbackData(csvData: Array<Record<string, unknown>>, metadata: Record<string, unknown>) {
   const fallbackData: FallbackData = {
     csvData: [...csvData],
     metadata: { ...metadata },
@@ -42,7 +42,7 @@ export function setFallbackData(csvData: any[], metadata: any) {
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently fail if localStorage is not available
     // Memory cache still works for current session
   }
@@ -76,7 +76,7 @@ export function getFallbackData(): FallbackData | null {
         }
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Clear corrupted data
     clearFallbackData();
   }
@@ -96,7 +96,7 @@ export function clearFallbackData() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
     }
-  } catch (error) {
+  } catch (_error) {
     // Silently fail
   }
 }

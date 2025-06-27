@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, CSV_METADATA_TABLE } from '@/lib/supabase';
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 export async function GET() {
@@ -45,18 +44,18 @@ export async function GET() {
           recordCount: data?.length || 0
         }
       });
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json({
         success: false,
         error: 'Supabase query failed',
-        details: error
+        details: 'Query execution error'
       });
     }
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({
       success: false,
       error: 'Environment check failed',
-      details: error
+      details: 'Environment validation error'
     });
   }
 } 

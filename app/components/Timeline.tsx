@@ -13,9 +13,7 @@ import {
   Legend,
   TimeScale,
 } from 'chart.js';
-import { Bar } from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
-import { AppConfig } from '@/lib/config';
 
 // Register Chart.js components
 ChartJS.register(
@@ -29,10 +27,12 @@ ChartJS.register(
 );
 
 interface TimelineProps {
-  data: any[];
+  data: Array<{
+    ID?: string;
+    grupo_dev?: string;
+    [key: string]: unknown;
+  }>;
   planConfig: PlanConfig;
-  extraHoverCols?: string[];
-  preciseHours?: boolean;
 }
 
 // Paleta de 24 colores bien diferenciados
@@ -42,43 +42,7 @@ const COLOR_PALETTE = [
   '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000', '#a9a9a9', '#b8860b'
 ];
 
-// Utilidad para generar color pastel único por nombre
-function stringToPastelColor(str: string) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const h = Math.abs(hash) % 360;
-  return `hsl(${h}, 60%, 80%)`;
-}
-
-// Utilidad para sumar días hábiles a una fecha
-function addBusinessDays(startDate: Date, businessDays: number): Date {
-  let current = new Date(startDate);
-  let added = 0;
-  while (added < businessDays) {
-    current.setDate(current.getDate() + 1);
-    const day = current.getDay();
-    if (day !== 0 && day !== 6) { // 0 = domingo, 6 = sábado
-      added++;
-    }
-  }
-  return current;
-}
-
-// Utilidad para contar días hábiles entre dos fechas (inclusive start, exclusive end)
-function countBusinessDays(start: Date, end: Date): number {
-  let count = 0;
-  let current = new Date(start);
-  while (current < end) {
-    const day = current.getDay();
-    if (day !== 0 && day !== 6) count++;
-    current.setDate(current.getDate() + 1);
-  }
-  return count;
-}
-
-export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours = false }: TimelineProps) {
+export function Timeline({ data, planConfig }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
   const defaultViewMode = 'gantt';
   const [viewMode, setViewMode] = useState<'table' | 'chart' | 'gantt'>(defaultViewMode);
@@ -132,14 +96,14 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
       const resource = row[planConfig.resource_col];
       
       if (startDate && endDate && resource) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
         
         timelineData.push({
-          Task: row.ID || `Task_${timelineData.length}`,
+          Task: (row.ID as string) || `Task_${timelineData.length}`,
           Start: start.toISOString(),
           Finish: end.toISOString(),
-          Resource: resource,
+          Resource: resource as string,
           Hours: Number(row[planConfig.hours_col]) || 8.0,
           dev_group: String(row.grupo_dev || 'N/A'),
         });
@@ -168,52 +132,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
     return COLOR_PALETTE[idx % COLOR_PALETTE.length];
   };
 
-  // Prepare chart data for bar chart
-  const chartData = {
-    labels: timelineData.map(item => item.Task),
-    datasets: [
-      {
-        label: 'Hours',
-        data: timelineData.map(item => Number(item.Hours) || 0),
-        backgroundColor: timelineData.map(item => getABAPColor(item.Resource)),
-        borderColor: timelineData.map(item => getABAPColor(item.Resource)),
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: `${planConfig.resource_title} Timeline`,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Hours',
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Tasks',
-        },
-      },
-    },
-  };
-
   // Prepare Gantt data - Fixed format with limited tasks for better readability
-  const maxTasksToShow = tasksPerPage; // Use pagination instead of fixed limit
-  
   // Sort timeline data by start date for chronological order
   const sortedTimelineData = [...timelineData].sort((a, b) => {
     const startA = new Date(a.Start);
@@ -225,156 +144,6 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
   const startIndex = currentPage * tasksPerPage;
   const endIndex = startIndex + tasksPerPage;
   const limitedTimelineData = sortedTimelineData.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(sortedTimelineData.length / tasksPerPage);
-  
-  const ganttData = {
-    labels: limitedTimelineData.map(item => `ID: ${item.Task} (${item.Resource})`),
-    datasets: [
-      {
-        label: 'Task Duration',
-        data: limitedTimelineData.map(item => {
-          const start = new Date(item.Start);
-          const end = new Date(item.Finish);
-          const duration = end.getTime() - start.getTime();
-          return {
-            x: start,
-            y: duration / (1000 * 60 * 60 * 24), // Convert to days
-            task: item.Task,
-            resource: item.Resource,
-            hours: item.Hours,
-            group: item.dev_group,
-            startDate: start,
-            endDate: end
-          };
-        }),
-        backgroundColor: limitedTimelineData.map((_, index) => 
-          `hsl(${(index * 137.5) % 360}, 70%, 60%)`
-        ),
-        borderColor: limitedTimelineData.map((_, index) => 
-          `hsl(${(index * 137.5) % 360}, 70%, 40%)`
-        ),
-        borderWidth: 1,
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  // Simple Gantt data for when timeline data is not available - also limited
-  const maxSimpleTasksToShow = 20;
-  const limitedData = data.slice(0, maxSimpleTasksToShow);
-  
-  const simpleGanttData = {
-    labels: limitedData.map((item, index) => `ID: ${item.ID || `Task_${index}`} (${item[planConfig.resource_col] || 'Unassigned'})`),
-    datasets: [
-      {
-        label: 'Task Hours',
-        data: limitedData.map((item, index) => ({
-          x: index, // Use index as position
-          y: Number(item[planConfig.hours_col]) || 8,
-          task: item.ID || `Task_${index}`,
-          resource: item[planConfig.resource_col] || 'Unassigned',
-          hours: Number(item[planConfig.hours_col]) || 8,
-          group: item.grupo_dev || 'N/A'
-        })),
-        backgroundColor: limitedData.map((_, index) => 
-          `hsl(${(index * 137.5) % 360}, 70%, 60%)`
-        ),
-        borderColor: limitedData.map((_, index) => 
-          `hsl(${(index * 137.5) % 360}, 70%, 40%)`
-        ),
-        borderWidth: 1,
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const ganttOptions = {
-    indexAxis: 'x' as const, // Vertical bar chart (traditional timeline)
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      title: {
-        display: true,
-        text: `Task Timeline by ID (${planConfig.resource_title})`,
-      },
-      tooltip: {
-        callbacks: {
-          title: (context: any) => {
-            const data = context[0].raw;
-            return `Task ID: ${data.task} (${data.resource})`;
-          },
-          label: (context: any) => {
-            const data = context.raw;
-            if (data.startDate && data.endDate) {
-              const startDate = data.startDate.toLocaleDateString();
-              const endDate = data.endDate.toLocaleDateString();
-              const duration = Math.ceil(data.y);
-              return [
-                `Task ID: ${data.task}`,
-                `ABAP: ${data.resource}`,
-                `Start: ${startDate}`,
-                `End: ${endDate}`,
-                `Duration: ${duration} days`,
-                `Hours: ${data.hours}`,
-                `Group: ${data.group}`
-              ];
-            } else {
-              return [
-                `Task ID: ${data.task}`,
-                `ABAP: ${data.resource}`,
-                `Hours: ${data.hours}`,
-                `Group: ${data.group}`,
-                `Position: ${data.x + 1}`
-              ];
-            }
-          },
-        },
-      },
-    },
-    scales: {
-      x: limitedTimelineData.length > 0 ? {
-        type: 'time' as const,
-        time: {
-          unit: 'day' as const,
-          displayFormats: {
-            day: 'MMM dd',
-          },
-        },
-        title: {
-          display: true,
-          text: 'Timeline',
-        },
-        ticks: {
-          maxTicksLimit: 10,
-        },
-      } : {
-        title: {
-          display: true,
-          text: 'Task Position',
-        },
-      },
-      y: {
-        title: {
-          display: true,
-          text: 'Task IDs',
-        },
-        ticks: {
-          maxTicksLimit: 15 // Limit number of y-axis labels
-        }
-      },
-    },
-    layout: {
-      padding: {
-        top: 20,
-        bottom: 20,
-        left: 20,
-        right: 20
-      }
-    }
-  };
 
   // Simple loading state
   if (!isClient) {
@@ -419,12 +188,6 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
       </div>
     );
   }
-
-  // Calculate total hours safely
-  const totalHours = timelineData.reduce((sum, item) => {
-    const hours = Number(item.Hours) || 0;
-    return sum + hours;
-  }, 0);
 
   // View toggle component
   const ViewToggle = () => (

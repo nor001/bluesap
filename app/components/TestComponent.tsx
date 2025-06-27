@@ -10,13 +10,13 @@ import { auditedFetch } from '@/lib/auditedFetch';
 // ✅ RULE PATTERN: Component Structure Pattern
 interface TestComponentProps {
   title: string;
-  onAction?: (data: any) => void;
+  onAction?: (data: Array<{ value?: number }>) => void;
   disabled?: boolean;
 }
 
 export function TestComponent({ title, onAction, disabled = false }: TestComponentProps) {
   // ✅ RULE PATTERN: State management
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Array<{ value?: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [executed, setExecuted] = useState(false); // React Strict Mode handling
@@ -36,7 +36,7 @@ export function TestComponent({ title, onAction, disabled = false }: TestCompone
           component: 'TestComponent.loadData'
         });
         setData(result.data);
-      } catch (error) {
+      } catch (_error) {
         // Failed to load data silently
       } finally {
         setLoading(false);

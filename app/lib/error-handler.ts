@@ -5,7 +5,7 @@ export interface AppError {
   type: 'validation' | 'network' | 'auth' | 'storage' | 'processing' | 'unknown';
   message: string;
   code?: string;
-  details?: any;
+  details?: unknown;
   timestamp: number;
   userFriendly?: boolean;
 }
@@ -14,7 +14,7 @@ export interface ErrorResponse {
   success: false;
   error: string;
   errorType?: string;
-  details?: any;
+  details?: unknown;
 }
 
 /**
@@ -23,7 +23,7 @@ export interface ErrorResponse {
 export function createError(
   type: AppError['type'],
   message: string,
-  details?: any,
+  details?: unknown,
   userFriendly: boolean = false
 ): AppError {
   return {
@@ -50,7 +50,7 @@ export function errorToResponse(error: AppError): ErrorResponse {
 /**
  * Handle CSV processing errors with special case preservation
  */
-export function handleCSVError(error: any): AppError {
+export function handleCSVError(error: { message?: string }): AppError {
   if (error.message?.includes('CSV parsing errors')) {
     return createError(
       'processing',
@@ -89,7 +89,7 @@ export function handleCSVError(error: any): AppError {
 /**
  * Handle Supabase connection errors
  */
-export function handleSupabaseError(error: any): AppError {
+export function handleSupabaseError(error: { message?: string }): AppError {
   if (error.message?.includes('fetch')) {
     return createError(
       'network',
@@ -119,7 +119,7 @@ export function handleSupabaseError(error: any): AppError {
 /**
  * Handle file upload errors
  */
-export function handleUploadError(error: any): AppError {
+export function handleUploadError(error: { message?: string }): AppError {
   if (error.message?.includes('Invalid file')) {
     return createError(
       'validation',

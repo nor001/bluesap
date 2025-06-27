@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { clearFallbackData } from '@/lib/fallback-storage';
 
 export async function POST() {
@@ -12,7 +12,7 @@ export async function POST() {
     clearFallbackData();
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
       error: 'Failed to clear cache' 

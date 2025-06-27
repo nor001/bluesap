@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToSupabase, updateCSVMetadata } from '@/lib/supabase';
+import { updateCSVMetadata } from '@/lib/supabase';
 import { setFallbackData } from '@/lib/fallback-storage';
 import { 
   processSpecialCSV, 
-  convertToOriginalCSVFormat, 
-  createCSVMetadata, 
-  validateCSVFile 
+  createCSVMetadata
 } from '@/lib/csv-processor';
-import { 
-  handleCSVError, 
-  handleUploadError, 
-  handleSupabaseError, 
-  errorToResponse,
-  logError 
-} from '@/lib/error-handler';
 
 interface UploadResponse {
   success: boolean;
-  data?: any[];
-  metadata?: any;
+  data?: unknown[];
+  metadata?: unknown;
   error?: string;
   errorType?: string;
 }
@@ -74,14 +65,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     // Try to update metadata in Supabase
     try {
       await updateCSVMetadata(metadata);
-    } catch (error) {
+    } catch (_error) {
       // Supabase not available, continue with fallback
     }
 
     // Save to fallback storage
     try {
       setFallbackData(processedData.data, metadata);
-    } catch (error) {
+    } catch (_error) {
       // Fallback storage failed, continue anyway
     }
 
@@ -92,10 +83,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       message: `Successfully processed ${processedData.rowCount} rows`
     });
 
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({ 
       success: false, 
-      error: error instanceof Error ? error.message : 'Upload failed' 
+      error: 'Upload failed' 
     });
   }
 } 

@@ -32,7 +32,7 @@ export interface TimelineData {
   Resource: string;
   Hours: number;
   dev_group: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface MetricsData {
@@ -43,8 +43,8 @@ export interface MetricsData {
 }
 
 export interface AppState {
-  csvData: any[];
-  assignedData: any[];
+  csvData: Array<Record<string, unknown>>;
+  assignedData: Array<Record<string, unknown>>;
   filters: FilterState;
   loading: boolean;
   planType: string;
@@ -55,7 +55,7 @@ export interface AppState {
 
 export interface UploadResponse {
   success: boolean;
-  data?: any[];
+  data?: Array<Record<string, unknown>>;
   error?: string;
   message?: string;
   metadata?: CSVMetadata;
@@ -63,14 +63,14 @@ export interface UploadResponse {
 
 export interface ProcessResponse {
   success: boolean;
-  data?: any[];
-  assignedData?: any[];
+  data?: Array<Record<string, unknown>>;
+  assignedData?: Array<Record<string, unknown>>;
   error?: string;
 }
 
 export interface AssignmentResponse {
   success: boolean;
-  data?: any[];
+  data?: Array<Record<string, unknown>>;
   error?: string;
 }
 

@@ -6,10 +6,8 @@ type Theme = 'dark' | 'light' | 'system';
 
 type ThemeProviderProps = {
   children: React.ReactNode;
-  attribute?: string;
   defaultTheme?: Theme;
   enableSystem?: boolean;
-  disableTransitionOnChange?: boolean;
 };
 
 type ThemeProviderState = {
@@ -26,10 +24,8 @@ const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
 export function ThemeProvider({
   children,
-  attribute = 'class',
   defaultTheme = 'system',
   enableSystem = true,
-  disableTransitionOnChange = false,
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme);
 
@@ -54,7 +50,7 @@ export function ThemeProvider({
       setTheme(theme);
       try {
         localStorage.setItem('theme', theme);
-      } catch (error) {
+      } catch (_error) {
         // Ignore
       }
     },

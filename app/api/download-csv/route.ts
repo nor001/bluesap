@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { downloadFileFromSupabase, CSV_DOWNLOAD_NAME, getCSVMetadata } from '@/lib/supabase';
+import { downloadFileFromSupabase, getCSVMetadata } from '@/lib/supabase';
 import { getFallbackData } from '@/lib/fallback-storage';
 import { convertToSimpleCSV } from '@/lib/csv-processor';
-import { handleSupabaseError, logError } from '@/lib/error-handler';
 
 // Cache for CSV content to avoid repeated downloads
 let csvCache: { content: string; timestamp: number } | null = null;
@@ -48,7 +47,7 @@ export async function GET() {
           });
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Supabase download failed, try fallback
     }
     
@@ -92,10 +91,10 @@ export async function GET() {
       error: 'No CSV data available'
     });
     
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : 'Download failed'
+      error: 'Download failed'
     });
   }
 }
@@ -116,7 +115,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: false,
       error: 'Invalid action'
     }, { status: 400 });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json({
       success: false,
       error: 'Failed to process request'

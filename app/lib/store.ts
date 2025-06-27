@@ -22,9 +22,9 @@ interface AppStore extends AppState {
   setCSVMetadata: (metadata: CSVMetadata) => void;
   syncToSupabase: () => Promise<boolean>;
   loadFallbackData: () => void;
-  setCSVData: (csvData: any[]) => void;
+  setCSVData: (csvData: Array<Record<string, unknown>>) => void;
   loadCachedData: () => boolean;
-  saveToCache: (data: any[], metadata: any) => void;
+  saveToCache: (data: Array<Record<string, unknown>>, metadata: Record<string, unknown>) => void;
   clearCache: () => void;
 }
 
@@ -78,7 +78,7 @@ export const createAppStore = () => create<AppStore>()(
           const formData = new FormData();
           formData.append('csv', file);
           
-          const result = await auditedFetch('/api/upload', {
+          const result = await auditedFetch<{ success: boolean; data?: Array<Record<string, unknown>>; error?: string }>('/api/upload', {
             method: 'POST',
             body: formData,
             component: 'Store.uploadCSV'
@@ -216,12 +216,12 @@ export const createAppStore = () => create<AppStore>()(
         lastMetadataCall = now;
 
         try {
-          const result = await auditedFetch('/api/csv-metadata', {
+          const result = await auditedFetch<{ success: boolean; metadata?: CSVMetadata }>('/api/csv-metadata', {
             method: 'GET',
             component: 'Store.fetchCSVMetadata'
           });
           
-          if (result.success) {
+          if (result.success && result.metadata) {
             set({ csvMetadata: result.metadata });
           }
         } catch (error) {
@@ -248,7 +248,7 @@ export const createAppStore = () => create<AppStore>()(
           if (fallbackData && isFallbackDataFresh()) {
             set({ 
               csvData: fallbackData.csvData,
-              csvMetadata: fallbackData.metadata
+              csvMetadata: fallbackData.metadata as unknown as CSVMetadata | undefined
             });
             
             // Don't trigger resource assignment here - let the page useEffect handle it
@@ -300,7 +300,7 @@ export const createAppStore = () => create<AppStore>()(
       },
 
       // Save data to cache
-      saveToCache: (data: any[], metadata: any) => {
+      saveToCache: (data: Array<Record<string, unknown>>, metadata: Record<string, unknown>) => {
         try {
           if (typeof window === 'undefined') return;
           
@@ -311,7 +311,7 @@ export const createAppStore = () => create<AppStore>()(
           };
           
           localStorage.setItem('bluesap-csv-cache', JSON.stringify(cacheData));
-        } catch (error) {
+        } catch (_error) {
           // Silently fail - cache is optional
         }
       },
@@ -322,7 +322,7 @@ export const createAppStore = () => create<AppStore>()(
           if (typeof window !== 'undefined') {
             localStorage.removeItem('bluesap-csv-cache');
           }
-        } catch (error) {
+        } catch (_error) {
           // Silently fail
         }
       },
@@ -337,7 +337,7 @@ export const createAppStore = () => create<AppStore>()(
         
         try {
           // Use the dedicated sync endpoint
-          const result = await auditedFetch('/api/sync-to-supabase', {
+          const result = await auditedFetch<{ success: boolean }>('/api/sync-to-supabase', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -371,7 +371,7 @@ export const createAppStore = () => create<AppStore>()(
       },
 
       // Rehydration callback
-      onRehydrateStorage: () => (state: any) => {
+      onRehydrateStorage: () => (_state: unknown) => {
         // Store rehydrated successfully
       },
     }),

@@ -11,15 +11,15 @@ interface AuditedFetchOptions extends RequestInit {
   skipAudit?: boolean;
 }
 
-interface AuditedFetchResponse<T = any> {
+interface AuditedFetchResponse<T = unknown> {
   data: T | null;
   error: string | null;
   loading: boolean;
   refetch: () => Promise<void>;
 }
 
-export function useAuditedFetch<T = any>() {
-  const auditedFetch = useCallback(async <T = any>(
+export function useAuditedFetch<T = unknown>() {
+  const auditedFetch = useCallback(async <T = unknown>(
     url: string, 
     options: AuditedFetchOptions
   ): Promise<T> => {
@@ -44,10 +44,10 @@ export function useAuditedFetch<T = any>() {
       success = response.ok;
       
       if (!response.ok) {
-        throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+        throw new Error((data as { error?: string }).error || `HTTP ${response.status}: ${response.statusText}`);
       }
       
-      return data;
+      return data as T;
     } catch (error) {
       success = false;
       throw error;
@@ -63,7 +63,7 @@ export function useAuditedFetch<T = any>() {
 /**
  * Hook for audited API calls with state management
  */
-export function useAuditedAPI<T = any>() {
+export function useAuditedAPI<T = unknown>() {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,7 +106,7 @@ export function useAuditedAPI<T = any>() {
 /**
  * Utility function for audited fetch without hooks
  */
-export async function auditedFetch<T = any>(
+export async function auditedFetch<T = unknown>(
   url: string,
   options: AuditedFetchOptions
 ): Promise<T> {
@@ -131,10 +131,10 @@ export async function auditedFetch<T = any>(
     success = response.ok;
     
     if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error((data as { error?: string }).error || `HTTP ${response.status}: ${response.statusText}`);
     }
     
-    return data;
+    return data as T;
   } catch (error) {
     success = false;
     throw error;

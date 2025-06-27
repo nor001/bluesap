@@ -54,7 +54,7 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
     }
 
     return data;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -75,7 +75,7 @@ export async function updateCSVMetadata(metadata: CSVMetadata): Promise<boolean>
     }
 
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -99,7 +99,7 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
     }
 
     return true;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
@@ -130,7 +130,7 @@ export async function downloadFileFromSupabase(): Promise<string | null> {
     }
     
     return csvContent;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 } 

@@ -3,8 +3,13 @@
 import { MetricsData } from '@/lib/types';
 
 interface MetricsProps {
-  data: any[];
-  planConfig: any;
+  data: Array<{
+    PROY?: string;
+    [key: string]: unknown;
+  }>;
+  planConfig: {
+    resource_col: string;
+  };
 }
 
 export function Metrics({ data, planConfig }: MetricsProps) {

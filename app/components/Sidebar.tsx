@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { FilterState } from '@/lib/types';
-import { ChevronDown, ChevronRight, Filter, Clock, Upload, FileText, Download } from 'lucide-react';
+import { Filter, Clock, Upload, FileText, Download } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
 import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 import { format } from 'date-fns';
@@ -21,7 +21,6 @@ const tabs = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const { filters, updateFilters, assignedData, csvData, csvMetadata, uploadCSV, planType, setPlanType } = useAppStore();
 
@@ -117,7 +116,7 @@ export default function Sidebar() {
       }
 
       await uploadCSV(file);
-    } catch (err) {
+    } catch (_err) {
       // Upload failed silently
     }
   };
@@ -385,7 +384,7 @@ export default function Sidebar() {
             <div className="p-4 pt-2">
               <button
                 onClick={() => {
-                  const handleExport = (data: any[], filename: string) => {
+                  const handleExport = (data: Array<Record<string, unknown>>, filename: string) => {
                     const csvContent = [
                       // Headers
                       Object.keys(data[0] || {}).join(','),

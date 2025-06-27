@@ -8,7 +8,7 @@ interface APICall {
   method: string;
   timestamp: number;
   component: string;
-  data?: any;
+  data?: unknown;
 }
 
 interface PerformanceMetrics {
@@ -78,7 +78,7 @@ class PerformanceAuditor {
   /**
    * Record an API call
    */
-  recordCall(endpoint: string, method: string, component: string, data?: any): void {
+  recordCall(endpoint: string, method: string, component: string, data?: unknown): void {
     const callKey = `${method}:${endpoint}`;
     const call: APICall = {
       endpoint,
@@ -199,11 +199,11 @@ ${recentCalls.slice(0, 10).map(call =>
 export const performanceAuditor = PerformanceAuditor.getInstance();
 
 // Utility functions for easy integration
-export function auditAPICall(endpoint: string, method: string, component: string, data?: any): boolean {
+export function auditAPICall(endpoint: string, method: string, component: string): boolean {
   return performanceAuditor.shouldAllowCall(endpoint, method, component);
 }
 
-export function recordAPICall(endpoint: string, method: string, component: string, data?: any): void {
+export function recordAPICall(endpoint: string, method: string, component: string, data?: unknown): void {
   performanceAuditor.recordCall(endpoint, method, component, data);
 }
 

@@ -13,8 +13,8 @@ const AUDITOR_CONFIG = {
 
 // ✅ RULE PATTERN: Performance Auditor Interface
 interface PerformanceAuditor {
-  shouldAllowCall(endpoint: string, method: string, component: string): boolean;
-  recordCall(endpoint: string, method: string, component: string, data?: any): void;
+  shouldAllowCall(endpoint: string, method: string): boolean;
+  recordCall(endpoint: string, method: string, component: string): void;
   recordCompletion(endpoint: string, method: string, duration: number, success: boolean): void;
   getMetrics(): PerformanceMetrics;
   generateReport(): string;
@@ -48,7 +48,7 @@ class PerformanceAuditorImpl implements PerformanceAuditor {
   private callCounts: Map<string, number> = new Map();
   private lastCleanup = Date.now();
 
-  shouldAllowCall(endpoint: string, method: string, component: string): boolean {
+  shouldAllowCall(endpoint: string, method: string): boolean {
     this.cleanup();
     
     const key = `${method}:${endpoint}`;
@@ -62,7 +62,7 @@ class PerformanceAuditorImpl implements PerformanceAuditor {
     return true;
   }
 
-  recordCall(endpoint: string, method: string, component: string, data?: any): void {
+  recordCall(endpoint: string, method: string, component: string): void {
     this.calls.push({
       endpoint,
       method,
@@ -139,7 +139,7 @@ ${recentCalls.map(call =>
 const performanceAuditor = new PerformanceAuditorImpl();
 
 // ✅ RULE PATTERN: Audited Fetch Implementation
-export async function auditedFetch<T = any>(
+export async function auditedFetch<T = unknown>(
   url: string,
   options: AuditedFetchOptions
 ): Promise<T> {
@@ -147,12 +147,12 @@ export async function auditedFetch<T = any>(
   const method = fetchOptions.method || 'GET';
   
   // ALWAYS audit the API call first
-  if (!skipAudit && !performanceAuditor.shouldAllowCall(url, method, component)) {
+  if (!skipAudit && !performanceAuditor.shouldAllowCall(url, method)) {
     throw new Error(`API call blocked by performance auditor: ${method} ${url}`);
   }
 
   // ALWAYS record the call for tracking
-  performanceAuditor.recordCall(url, method, component, fetchOptions.body);
+  performanceAuditor.recordCall(url, method, component);
 
   const startTime = Date.now();
   let success = false;
@@ -164,10 +164,10 @@ export async function auditedFetch<T = any>(
     success = response.ok;
     
     if (!response.ok) {
-      throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error((data as { error?: string }).error || `HTTP ${response.status}: ${response.statusText}`);
     }
     
-    return data;
+    return data as T;
   } catch (error) {
     success = false;
     throw error;

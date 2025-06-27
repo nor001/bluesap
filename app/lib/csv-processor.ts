@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 
 export interface CSVRow {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ProcessedCSVData {
@@ -78,11 +78,11 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
       if (row[col]) {
         try {
           // Handle dd/mm/yyyy format
-          const date = new Date(row[col]);
+          const date = new Date(row[col] as string);
           if (!isNaN(date.getTime())) {
             normalizedRow[col] = date.toISOString();
           }
-        } catch (e) {
+        } catch (_e) {
           // Keep original value if parsing fails
         }
       }
@@ -92,7 +92,7 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
     const numericColumns = ['plan_abap_dev_time', 'plan_abap_pu_time'];
     numericColumns.forEach(col => {
       if (row[col]) {
-        const num = parseFloat(row[col]);
+        const num = parseFloat(row[col] as string);
         if (!isNaN(num)) {
           normalizedRow[col] = num;
         }

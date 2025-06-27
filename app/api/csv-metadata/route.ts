@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCSVMetadata } from '@/lib/supabase';
-import { getFallbackData, hasFallbackData } from '@/lib/fallback-storage';
+import { getFallbackData } from '@/lib/fallback-storage';
 
 export async function GET() {
   try {
@@ -14,7 +14,7 @@ export async function GET() {
           metadata: metadata
         });
       }
-    } catch (error) {
+    } catch (_error) {
       // Supabase failed, try fallback
     }
     
@@ -34,7 +34,7 @@ export async function GET() {
       error: 'No metadata available'
     });
     
-  } catch (error) {
+  } catch (_error) {
     // If error occurred, try fallback
     const fallback = getFallbackData();
     

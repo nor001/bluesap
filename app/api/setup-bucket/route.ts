@@ -83,7 +83,7 @@ export async function POST() {
       if (insertPolicyError || selectPolicyError) {
         // Policies might not be created immediately, but bucket setup is still successful
       }
-    } catch (policyError) {
+    } catch (_policyError) {
       // Policies might already exist or user might not have permission
       // Policies might not be created immediately, but bucket setup is still successful
     }
