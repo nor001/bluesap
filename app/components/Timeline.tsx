@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TimelineData, PlanConfig } from '@/lib/types';
-import { AppConfig } from '@/lib/config';
 
 interface TimelineProps {
   data: any[];
@@ -13,128 +12,50 @@ interface TimelineProps {
 
 export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours = false }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     setIsClient(true);
-    setDebugInfo(`Client: true, Data length: ${data?.length || 0}`);
-  }, [data?.length]);
+  }, []);
 
-  const timelineData = useMemo(() => {
-    if (!data || data.length === 0) {
-      setDebugInfo('No data provided');
-      return [];
-    }
-
-    const ganttData: TimelineData[] = [];
-    let processedCount = 0;
-    let skippedCount = 0;
-    
+  // Simple data processing without useMemo
+  const timelineData: TimelineData[] = [];
+  
+  if (data && data.length > 0) {
     for (const row of data) {
       const startDate = row[planConfig.start_date_col];
       const endDate = row[planConfig.end_date_col];
       const resource = row[planConfig.resource_col];
       
       if (startDate && endDate && resource) {
-        let start = new Date(startDate);
-        let end = new Date(endDate);
+        const start = new Date(startDate);
+        const end = new Date(endDate);
         
-        if (preciseHours) {
-          start = new Date(start);
-          start.setHours(9, 0, 0, 0);
-          
-          end = new Date(end);
-          end.setHours(18, 0, 0, 0);
-        }
-        
-        const timelineItem: TimelineData = {
-          Task: row.ID || `Task_${ganttData.length}`,
+        timelineData.push({
+          Task: row.ID || `Task_${timelineData.length}`,
           Start: start.toISOString(),
           Finish: end.toISOString(),
           Resource: resource,
           Hours: row[planConfig.hours_col] || 8.0,
           dev_group: String(row.grupo_dev || 'N/A'),
-          ...(extraHoverCols.reduce((acc, col) => {
-            acc[col] = row[col] || '';
-            return acc;
-          }, {} as Record<string, any>))
-        };
-        
-        ganttData.push(timelineItem);
-        processedCount++;
-      } else {
-        skippedCount++;
+        });
       }
     }
+  }
 
-    const unassignedTasks = data.filter(row => {
-      const startDate = row[planConfig.start_date_col];
-      const endDate = row[planConfig.end_date_col];
-      const resource = row[planConfig.resource_col];
-      
-      return !startDate || !endDate || !resource || 
-             resource === '' || resource === 'None' || resource === 'nan';
-    });
-
-    if (unassignedTasks.length > 0) {
-      const baseDate = new Date();
-      baseDate.setHours(9, 0, 0, 0);
-      
-      unassignedTasks.forEach((row, index) => {
-        const hours = row[planConfig.hours_col] || 8.0;
-        const start = new Date(baseDate);
-        start.setDate(start.getDate() + index);
-        
-        const end = new Date(start);
-        end.setDate(end.getDate() + Math.max(1, Math.ceil(hours / 8)));
-        
-        const timelineItem: TimelineData = {
-          Task: `${row.ID || `Task_${ganttData.length + index}`} (PENDIENTE)`,
-          Start: start.toISOString(),
-          Finish: end.toISOString(),
-          Resource: 'TAREAS PENDIENTES',
-          Hours: hours,
-          dev_group: String(row.grupo_dev || 'N/A'),
-          ...(extraHoverCols.reduce((acc, col) => {
-            acc[col] = row[col] || '';
-            return acc;
-          }, {} as Record<string, any>))
-        };
-        
-        ganttData.push(timelineItem);
-      });
-    }
-
-    setDebugInfo(`Processed: ${processedCount}, Skipped: ${skippedCount}, Unassigned: ${unassignedTasks.length}, Total: ${ganttData.length}`);
-    return ganttData;
-  }, [data, planConfig, extraHoverCols, preciseHours]);
-
-  if (data && data.length > 0 && timelineData.length === 0) {
+  // Simple loading state
+  if (!isClient) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="text-center">
           <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Data Available but No Timeline</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
-            Found {data.length} rows, but no valid timeline data.
-          </p>
-          <div className="text-sm text-gray-600 dark:text-gray-400 text-left max-w-md mx-auto">
-            <p><strong>Required columns:</strong></p>
-            <ul className="list-disc list-inside mt-2">
-              <li>Start Date: {planConfig.start_date_col}</li>
-              <li>End Date: {planConfig.end_date_col}</li>
-              <li>Resource: {planConfig.resource_col}</li>
-              <li>Hours: {planConfig.hours_col}</li>
-            </ul>
-            <p className="mt-2">
-              <strong>Available columns:</strong> {Object.keys(data[0] || {}).join(', ')}
-            </p>
-          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
+          <p className="text-gray-500 dark:text-gray-400">Preparing timeline view</p>
         </div>
       </div>
     );
   }
 
+  // No data state
   if (timelineData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -147,69 +68,16 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
     );
   }
 
-  if (!isClient) {
-    return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
-          <p className="text-gray-500 dark:text-gray-400">Preparing timeline view</p>
-          {debugInfo && (
-            <p className="text-xs text-gray-400 mt-2">Debug: {debugInfo}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  let resourceConfig: Record<string, any>;
-  if (planConfig.resource_title.includes('Developer')) {
-    resourceConfig = AppConfig.getAllDevelopersConfig();
-  } else {
-    resourceConfig = AppConfig.TESTERS_CONFIG;
-  }
-  
-  const colorMap: Record<string, string> = {};
-  const colors = [
-    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-    "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
-    "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
-    "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
-    "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
-  ];
-  
-  Object.entries(resourceConfig).forEach(([resource, config]) => {
-    colorMap[resource] = config.color;
-  });
-  
-  const allResources = [...new Set(timelineData.map(item => item.Resource))];
-  let dynamicIndex = 0;
-  
-  allResources.forEach(resource => {
-    if (!colorMap[resource]) {
-      const colorIndex = dynamicIndex % colors.length;
-      colorMap[resource] = colors[colorIndex];
-      dynamicIndex++;
-    }
-  });
-
-  colorMap['TAREAS PENDIENTES'] = '#FF6B6B';
-
+  // Simple table view
   return (
-    <div className="w-full relative z-10">
-      {debugInfo && (
-        <div className="text-xs text-gray-500 mb-2 p-2 bg-gray-100 dark:bg-gray-800 rounded">
-          Debug: {debugInfo}
-        </div>
-      )}
-      
+    <div className="w-full">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             Planning Timeline ({planConfig.resource_title})
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Interactive timeline view with {timelineData.length} tasks across {[...new Set(timelineData.map(item => item.Resource))].length} resources
+            Showing {timelineData.length} tasks
           </p>
         </div>
         
@@ -235,26 +103,13 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   Group
                 </th>
-                {extraHoverCols.map(col => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    {col}
-                  </th>
-                ))}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {timelineData.map((item, index) => (
+              {timelineData.slice(0, 20).map((item, index) => (
                 <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                    <div className="flex items-center">
-                      <div 
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ 
-                          backgroundColor: colorMap[item.Resource] || '#000000'
-                        }}
-                      ></div>
-                      {item.Resource}
-                    </div>
+                    {item.Resource}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {item.Task}
@@ -271,11 +126,6 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {item.dev_group}
                   </td>
-                  {extraHoverCols.map(col => (
-                    <td key={col} className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                      {item[col] || ''}
-                    </td>
-                  ))}
                 </tr>
               ))}
             </tbody>
@@ -295,19 +145,14 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
               </p>
             </div>
             <div>
-              <p className="text-gray-500 dark:text-gray-400">Date Range</p>
-              <p className="font-semibold text-gray-900 dark:text-white">
-                {timelineData.length > 0 ? 
-                  `${new Date(timelineData[0].Start).toLocaleDateString()} - ${new Date(timelineData[timelineData.length-1].Finish).toLocaleDateString()}` : 
-                  'N/A'
-                }
-              </p>
-            </div>
-            <div>
               <p className="text-gray-500 dark:text-gray-400">Total Hours</p>
               <p className="font-semibold text-gray-900 dark:text-white">
                 {timelineData.reduce((sum, item) => sum + (item.Hours || 0), 0).toFixed(1)}
               </p>
+            </div>
+            <div>
+              <p className="text-gray-500 dark:text-gray-400">Status</p>
+              <p className="font-semibold text-gray-900 dark:text-white">Active</p>
             </div>
           </div>
         </div>
