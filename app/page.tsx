@@ -87,6 +87,7 @@ export default function HomePage() {
     // Only auto-assign if this is a new upload (not existing data)
     // We'll let the user manually assign resources for existing data
     if (csvData.length > 0 && assignedData.length === 0 && !loading) {
+      console.log('🔄 Auto-assigning resources...', { csvDataLength: csvData.length });
       // Don't auto-assign for existing data - let user do it manually
     }
   }, [csvData.length, assignedData.length, loading]);
@@ -94,6 +95,7 @@ export default function HomePage() {
   // Re-assign resources when plan type changes (only if already assigned)
   useEffect(() => {
     if (csvData.length > 0 && assignedData.length > 0 && !loading) {
+      console.log('🔄 Re-assigning resources due to plan type change...', { planType });
       assignResources();
     }
   }, [planType, csvData.length, assignedData.length, loading]);
@@ -101,6 +103,11 @@ export default function HomePage() {
   // Show success message when resources are assigned
   useEffect(() => {
     if (assignedData.length > 0 && csvData.length > 0) {
+      console.log('✅ Resources assigned successfully!', { 
+        csvDataLength: csvData.length, 
+        assignedDataLength: assignedData.length,
+        sampleAssigned: assignedData[0]
+      });
       // Resources assigned successfully
     }
   }, [assignedData.length, csvData.length]);
@@ -314,12 +321,24 @@ export default function HomePage() {
             {/* Show message if data is loaded but not assigned */}
             {assignedData.length === 0 && (
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                <div className="flex items-center">
-                  <div className="text-blue-400 dark:text-blue-300 mr-3">ℹ️</div>
-                  <div className="text-sm text-blue-700 dark:text-blue-300">
-                    <p className="font-medium mb-1">Datos CSV cargados correctamente</p>
-                    <p>Se encontraron {csvData.length} registros. Los recursos se asignarán automáticamente.</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="text-blue-400 dark:text-blue-300 mr-3">ℹ️</div>
+                    <div className="text-sm text-blue-700 dark:text-blue-300">
+                      <p className="font-medium mb-1">Datos CSV cargados correctamente</p>
+                      <p>Se encontraron {csvData.length} registros. Los recursos se asignarán automáticamente.</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => {
+                      console.log('🔄 Manual assignment triggered');
+                      assignResources();
+                    }}
+                    disabled={loading}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    {loading ? 'Asignando...' : 'Asignar Manualmente'}
+                  </button>
                 </div>
               </div>
             )}

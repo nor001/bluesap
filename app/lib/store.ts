@@ -114,7 +114,14 @@ export const createAppStore = () => create<AppStore>()(
       assignResources: async () => {
         const { csvData, planType, assignedData } = get();
         
+        console.log('🔄 assignResources called', { 
+          csvDataLength: csvData?.length || 0, 
+          planType, 
+          currentAssignedLength: assignedData?.length || 0 
+        });
+        
         if (!csvData || csvData.length === 0) {
+          console.log('❌ No CSV data available for assignment');
           return;
         }
 
@@ -123,6 +130,7 @@ export const createAppStore = () => create<AppStore>()(
         const DEBOUNCE_DELAY = 1000; // 1 second
 
         if (now - lastAssignCall < DEBOUNCE_DELAY) {
+          console.log('⏳ Debounced assignment call');
           return;
         }
 
@@ -131,8 +139,14 @@ export const createAppStore = () => create<AppStore>()(
         set({ loading: true });
         
         try {
+          console.log('🔄 Starting assignment calculation...');
           // Use local calculation instead of API call
           const newAssignedData = calculateAssignments(csvData, planType);
+          
+          console.log('✅ Assignment calculation completed', { 
+            newAssignedDataLength: newAssignedData?.length || 0,
+            sampleAssigned: newAssignedData?.[0]
+          });
           
           set({ 
             assignedData: newAssignedData,
@@ -141,7 +155,11 @@ export const createAppStore = () => create<AppStore>()(
           
           // Verify the state was updated
           const updatedState = get();
+          console.log('✅ State updated', { 
+            newAssignedLength: updatedState.assignedData?.length || 0 
+          });
         } catch (error) {
+          console.error('❌ Assignment failed:', error);
           set({ loading: false });
           logError({
             type: 'processing',
