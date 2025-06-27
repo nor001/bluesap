@@ -35,7 +35,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
           Start: start.toISOString(),
           Finish: end.toISOString(),
           Resource: resource,
-          Hours: row[planConfig.hours_col] || 8.0,
+          Hours: Number(row[planConfig.hours_col]) || 8.0,
           dev_group: String(row.grupo_dev || 'N/A'),
         });
       }
@@ -67,6 +67,12 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
       </div>
     );
   }
+
+  // Calculate total hours safely
+  const totalHours = timelineData.reduce((sum, item) => {
+    const hours = Number(item.Hours) || 0;
+    return sum + hours;
+  }, 0);
 
   // Simple table view
   return (
@@ -121,7 +127,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
                     {new Date(item.Finish).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {item.Hours}
+                    {Number(item.Hours) || 0}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {item.dev_group}
@@ -147,7 +153,7 @@ export function Timeline({ data, planConfig, extraHoverCols = [], preciseHours =
             <div>
               <p className="text-gray-500 dark:text-gray-400">Total Hours</p>
               <p className="font-semibold text-gray-900 dark:text-white">
-                {timelineData.reduce((sum, item) => sum + (item.Hours || 0), 0).toFixed(1)}
+                {totalHours.toFixed(1)}
               </p>
             </div>
             <div>
