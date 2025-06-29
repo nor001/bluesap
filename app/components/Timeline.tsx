@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
 import { PlanConfig } from '@/lib/types';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale,
+    BarElement,
+    CategoryScale,
+    Chart as ChartJS,
+    Legend,
+    LinearScale,
+    TimeScale,
+    Title,
+    Tooltip,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import { useEffect, useMemo, useState } from 'react';
 
 // Register Chart.js components
 ChartJS.register(
@@ -34,34 +34,14 @@ interface TimelineProps {
   planConfig: PlanConfig;
 }
 
-// Paleta de 24 colores bien diferenciados
-const COLOR_PALETTE = [
-  '#e6194b',
-  '#3cb44b',
-  '#ffe119',
-  '#4363d8',
-  '#f58231',
-  '#911eb4',
-  '#46f0f0',
-  '#f032e6',
-  '#bcf60c',
-  '#fabebe',
-  '#008080',
-  '#e6beff',
-  '#9a6324',
-  '#fffac8',
-  '#800000',
-  '#aaffc3',
-  '#808000',
-  '#ffd8b1',
-  '#000075',
-  '#808080',
-  '#ffffff',
-  '#000000',
-  '#a9a9a9',
-  '#b8860b',
-];
-
+/**
+ * @ai-context Componente principal para visualización de timeline de proyectos SAP
+ * @ai-purpose Muestra tareas asignadas en formato Gantt con paginación inteligente
+ * @ai-data-expects Array de objetos con fechas de inicio/fin y recursos asignados
+ * @ai-performance-notes Maneja datasets grandes con paginación y memoización
+ * @ai-business-context Visualización de planificación de recursos ABAP en proyectos SAP
+ * @ai-special-cases Soporta diferentes formatos de fecha y agrupación por módulos
+ */
 export function Timeline({ data, planConfig }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
   const defaultViewMode = 'gantt';
@@ -83,7 +63,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     setIsClient(true);
   }, []);
 
-  // Detect mobile screen size
+  // Detect mobile screen size for responsive design
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -95,20 +75,22 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Debug logging
+  // Debug logging for development environment
   useEffect(() => {
-    console.log('🔍 Timeline Debug:', {
-      dataLength: data?.length || 0,
-      planConfig,
-      sampleData: data?.[0],
-      viewMode,
-      currentPage,
-      tasksPerPage,
-      columnWidth,
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Timeline Debug:', {
+        dataLength: data?.length || 0,
+        planConfig,
+        sampleData: data?.[0],
+        viewMode,
+        currentPage,
+        tasksPerPage,
+        columnWidth,
+      });
+    }
   }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth]);
 
-  // Memoize timelineData to prevent unnecessary re-renders
+  // Memoize timelineData to prevent unnecessary re-renders and improve performance
   const timelineData = useMemo(() => {
     if (!data || data.length === 0) return [];
 
@@ -133,21 +115,51 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       .sort((a, b) => a.start.getTime() - b.start.getTime());
   }, [data, planConfig]);
 
-  // Debug timeline data
+  // Debug timeline data processing for development
   useEffect(() => {
-    console.log('🔍 Timeline Data Processed:', {
-      timelineDataLength: timelineData.length,
-      sampleTimeline: timelineData[0],
-      planConfigCols: {
-        start_date_col: planConfig.start_date_col,
-        end_date_col: planConfig.end_date_col,
-        resource_col: planConfig.resource_col,
-        hours_col: planConfig.hours_col,
-      },
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Timeline Data Processed:', {
+        timelineDataLength: timelineData.length,
+        sampleTimeline: timelineData[0],
+        planConfigCols: {
+          start_date_col: planConfig.start_date_col,
+          end_date_col: planConfig.end_date_col,
+          resource_col: planConfig.resource_col,
+          hours_col: planConfig.hours_col,
+        },
+      });
+    }
   }, [timelineData, planConfig]);
 
-  // Justo antes de chartData:
+  // Paleta de 24 colores bien diferenciados para recursos ABAP
+  const COLOR_PALETTE = [
+    '#e6194b',
+    '#3cb44b',
+    '#ffe119',
+    '#4363d8',
+    '#f58231',
+    '#911eb4',
+    '#46f0f0',
+    '#f032e6',
+    '#bcf60c',
+    '#fabebe',
+    '#008080',
+    '#e6beff',
+    '#9a6324',
+    '#fffac8',
+    '#800000',
+    '#aaffc3',
+    '#808000',
+    '#ffd8b1',
+    '#000075',
+    '#808080',
+    '#ffffff',
+    '#000000',
+    '#a9a9a9',
+    '#b8860b',
+  ];
+
+  // Get unique ABAP resources and assign colors
   const uniqueAbaps = Array.from(
     new Set(timelineData.map(t => t.Resource))
   ).sort();
@@ -156,20 +168,19 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return COLOR_PALETTE[idx % COLOR_PALETTE.length];
   };
 
-  // Prepare Gantt data - Fixed format with limited tasks for better readability
-  // Sort timeline data by start date for chronological order
+  // Prepare Gantt data with pagination for better performance
   const sortedTimelineData = [...timelineData].sort((a, b) => {
     const startA = new Date(a.start);
     const startB = new Date(b.start);
     return startA.getTime() - startB.getTime();
   });
 
-  // Paginate the data
+  // Paginate the data for better performance with large datasets
   const startIndex = currentPage * tasksPerPage;
   const endIndex = startIndex + tasksPerPage;
   const limitedTimelineData = sortedTimelineData.slice(startIndex, endIndex);
 
-  // Simple loading state
+  // Loading state for client-side rendering
   if (!isClient) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -188,7 +199,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     );
   }
 
-  // No data state
+  // No data state with helpful information
   if (timelineData.length === 0) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -222,7 +233,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     );
   }
 
-  // View toggle component
+  // View toggle component for different visualization modes
   const ViewToggle = () => (
     <div className="flex space-x-2 mb-4">
       <button

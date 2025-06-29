@@ -1,20 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-  AppState,
-  FilterState,
-  MetricsData,
-  TimelineData,
-  CSVMetadata,
-} from './types';
-import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
-import { logError } from './error-handler';
-import { auditedFetch } from './auditedFetch';
 import { calculateAssignments } from './assignment-calculator';
+import { auditedFetch } from './auditedFetch';
+import { logError } from './error-handler';
+import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
+import {
+    AppState,
+    CSVMetadata,
+    FilterState,
+    MetricsData,
+    TimelineData,
+} from './types';
 
+/**
+ * @ai-context Store principal para gestión de estado de aplicación SAP
+ * @ai-purpose Maneja estado global de datos CSV, asignaciones y filtros
+ * @ai-business-context Gestión de planificación de recursos ABAP en proyectos SAP
+ * @ai-special-cases Persistencia local, fallback storage, y sincronización con Supabase
+ */
 interface AppStore extends AppState {
   // Actions
   uploadCSV: (file: File) => Promise<void>;
+  uploadParsedCSVData: (csvData: Array<Record<string, unknown>>) => Promise<void>;
   assignResources: () => Promise<void>;
   updateFilters: (filters: Partial<FilterState>) => void;
   setPlanType: (planType: string) => void;
@@ -94,6 +101,55 @@ export const createAppStore = () =>
               method: 'POST',
               body: formData,
               component: 'Store.uploadCSV',
+            });
+
+            if (result.success && result.data) {
+              set({
+                csvData: result.data,
+                loading: false,
+              });
+
+              // Automatically assign resources after upload (with debounce)
+              setTimeout(() => {
+                get().assignResources();
+              }, 100);
+            } else {
+              set({ loading: false });
+              throw new Error(result.error || 'Upload failed');
+            }
+          } catch (error) {
+            set({ loading: false });
+            logError(
+              {
+                type: 'processing',
+                message: 'Upload failed',
+                details: error,
+                timestamp: Date.now(),
+                userFriendly: true,
+              },
+              'Store'
+            );
+            throw error;
+          }
+        },
+
+        uploadParsedCSVData: async (csvData: Array<Record<string, unknown>>) => {
+          set({ loading: true });
+
+          try {
+            const result = await auditedFetch<{
+              success: boolean;
+              data?: Array<Record<string, unknown>>;
+              error?: string;
+            }>('/api/upload-parsed', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                data: csvData,
+              }),
+              component: 'Store.uploadParsedCSVData',
             });
 
             if (result.success && result.data) {
