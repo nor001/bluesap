@@ -41,6 +41,9 @@ interface TimelineProps {
  * @ai-performance-notes Maneja datasets grandes con paginación y memoización
  * @ai-business-context Visualización de planificación de recursos ABAP en proyectos SAP
  * @ai-special-cases Soporta diferentes formatos de fecha y agrupación por módulos
+ * @ai-cognitive-load medium - Componente complejo con múltiples estados
+ * @ai-focus-state clear - Lógica de paginación y filtrado bien definida
+ * @ai-session-type standard - Operación rutinaria de visualización
  */
 export function Timeline({ data, planConfig }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
@@ -75,21 +78,6 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Debug logging for development environment
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Timeline Debug:', {
-        dataLength: data?.length || 0,
-        planConfig,
-        sampleData: data?.[0],
-        viewMode,
-        currentPage,
-        tasksPerPage,
-        columnWidth,
-      });
-    }
-  }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth]);
-
   // Memoize timelineData to prevent unnecessary re-renders and improve performance
   const timelineData = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -115,21 +103,56 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       .sort((a, b) => a.start.getTime() - b.start.getTime());
   }, [data, planConfig]);
 
-  // Debug timeline data processing for development
+  // Debug logging for development environment with systematic isolation
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Timeline Data Processed:', {
-        timelineDataLength: timelineData.length,
-        sampleTimeline: timelineData[0],
+      // Step 1: Data validation check
+      const dataValidation = {
+        hasData: !!data,
+        dataLength: data?.length || 0,
+        hasPlanConfig: !!planConfig,
+        requiredColumns: planConfig ? [
+          planConfig.start_date_col,
+          planConfig.end_date_col,
+          planConfig.resource_col,
+          planConfig.hours_col
+        ] : []
+      };
+      
+      // Step 2: State consistency check
+      const stateValidation = {
+        viewMode,
+        currentPage,
+        tasksPerPage,
+        columnWidth,
+        isClient
+      };
+      
+      // Step 3: Performance metrics
+      const performanceMetrics = {
+        timelineDataLength: timelineData?.length || 0,
+        paginationInfo: {
+          startIndex: currentPage * tasksPerPage,
+          endIndex: (currentPage * tasksPerPage) + tasksPerPage,
+          totalPages: Math.ceil((timelineData?.length || 0) / tasksPerPage)
+        }
+      };
+      
+      console.log('🔍 Timeline Debug - Systematic Analysis:', {
+        dataValidation,
+        stateValidation,
+        performanceMetrics,
+        sampleData: data?.[0],
+        sampleTimeline: timelineData?.[0],
         planConfigCols: {
           start_date_col: planConfig.start_date_col,
           end_date_col: planConfig.end_date_col,
           resource_col: planConfig.resource_col,
-          hours_col: planConfig.hours_col,
-        },
+          hours_col: planConfig.hours_col
+        }
       });
     }
-  }, [timelineData, planConfig]);
+  }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth, timelineData, isClient]);
 
   // Paleta de 24 colores bien diferenciados para recursos ABAP
   const COLOR_PALETTE = [
