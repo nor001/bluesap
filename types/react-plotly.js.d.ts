@@ -1,6 +1,6 @@
 declare module 'react-plotly.js' {
   import { Component } from 'react';
-  
+
   interface PlotParams {
     data: any[];
     layout?: any;
@@ -44,4 +44,4 @@ declare module 'react-plotly.js' {
   class Plot extends Component<PlotParams> {}
 
   export default Plot;
-} 
+}

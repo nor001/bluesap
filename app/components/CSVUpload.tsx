@@ -22,7 +22,7 @@ export function CSVUpload() {
 
   const handleFileUpload = async (file: File) => {
     setError(null);
-    
+
     try {
       await uploadCSV(file);
     } catch (err) {
@@ -37,11 +37,11 @@ export function CSVUpload() {
           <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-4">
             <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
-          
+
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Subir archivo CSV
           </h3>
-          
+
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Selecciona un archivo CSV con datos de proyectos SAP
           </p>
@@ -54,7 +54,7 @@ export function CSVUpload() {
                 <input
                   type="file"
                   accept=".csv"
-                  onChange={(e) => {
+                  onChange={e => {
                     const file = e.target.files?.[0];
                     if (file) {
                       handleFileUpload(file);
@@ -90,4 +90,4 @@ export function CSVUpload() {
       </div>
     </div>
   );
-} 
+}

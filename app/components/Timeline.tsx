@@ -36,15 +36,38 @@ interface TimelineProps {
 
 // Paleta de 24 colores bien diferenciados
 const COLOR_PALETTE = [
-  '#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6',
-  '#bcf60c', '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3',
-  '#808000', '#ffd8b1', '#000075', '#808080', '#ffffff', '#000000', '#a9a9a9', '#b8860b'
+  '#e6194b',
+  '#3cb44b',
+  '#ffe119',
+  '#4363d8',
+  '#f58231',
+  '#911eb4',
+  '#46f0f0',
+  '#f032e6',
+  '#bcf60c',
+  '#fabebe',
+  '#008080',
+  '#e6beff',
+  '#9a6324',
+  '#fffac8',
+  '#800000',
+  '#aaffc3',
+  '#808000',
+  '#ffd8b1',
+  '#000075',
+  '#808080',
+  '#ffffff',
+  '#000000',
+  '#a9a9a9',
+  '#b8860b',
 ];
 
 export function Timeline({ data, planConfig }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
   const defaultViewMode = 'gantt';
-  const [viewMode, setViewMode] = useState<'table' | 'chart' | 'gantt'>(defaultViewMode);
+  const [viewMode, setViewMode] = useState<'table' | 'chart' | 'gantt'>(
+    defaultViewMode
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [tasksPerPage, setTasksPerPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -65,10 +88,10 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
@@ -81,17 +104,21 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       viewMode,
       currentPage,
       tasksPerPage,
-      columnWidth
+      columnWidth,
     });
   }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth]);
 
   // Memoize timelineData to prevent unnecessary re-renders
   const timelineData = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
+
     return data
       .filter((item: Record<string, unknown>) => {
-        if (planConfig.resource_col && item[planConfig.resource_col] !== planConfig.resource_col) return false;
+        if (
+          planConfig.resource_col &&
+          item[planConfig.resource_col] !== planConfig.resource_col
+        )
+          return false;
         return true;
       })
       .map((item: Record<string, unknown>) => ({
@@ -115,13 +142,15 @@ export function Timeline({ data, planConfig }: TimelineProps) {
         start_date_col: planConfig.start_date_col,
         end_date_col: planConfig.end_date_col,
         resource_col: planConfig.resource_col,
-        hours_col: planConfig.hours_col
-      }
+        hours_col: planConfig.hours_col,
+      },
     });
   }, [timelineData, planConfig]);
 
   // Justo antes de chartData:
-  const uniqueAbaps = Array.from(new Set(timelineData.map(t => t.Resource))).sort();
+  const uniqueAbaps = Array.from(
+    new Set(timelineData.map(t => t.Resource))
+  ).sort();
   const getABAPColor = (abapName: string) => {
     const idx = uniqueAbaps.indexOf(abapName);
     return COLOR_PALETTE[idx % COLOR_PALETTE.length];
@@ -134,7 +163,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     const startB = new Date(b.start);
     return startA.getTime() - startB.getTime();
   });
-  
+
   // Paginate the data
   const startIndex = currentPage * tasksPerPage;
   const endIndex = startIndex + tasksPerPage;
@@ -145,9 +174,15 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Loading Timeline...</h3>
-          <p className="text-gray-500 dark:text-gray-400">Preparing timeline view</p>
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">
+            📊
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Loading Timeline...
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400">
+            Preparing timeline view
+          </p>
         </div>
       </div>
     );
@@ -158,13 +193,16 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return (
       <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
         <div className="text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">📊</div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Timeline Data</h3>
+          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">
+            📊
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            No Timeline Data
+          </h3>
           <p className="text-gray-500 dark:text-gray-400">
-            {data.length > 0 
+            {data.length > 0
               ? `Data available but missing date columns. Found columns: ${Object.keys(data[0] || {}).join(', ')}`
-              : 'Upload CSV data and assign resources to see the timeline'
-            }
+              : 'Upload CSV data and assign resources to see the timeline'}
           </p>
           {data.length > 0 && (
             <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md text-left">
@@ -204,10 +242,20 @@ export function Timeline({ data, planConfig }: TimelineProps) {
   const GanttView = () => {
     if (limitedTimelineData.length > 0) {
       // Full timeline Gantt - Microsoft Project style
-      const earliestDate = new Date(Math.min(...limitedTimelineData.map(item => new Date(item.start).getTime())));
-      const latestDate = new Date(Math.max(...limitedTimelineData.map(item => new Date(item.end).getTime())));
-      const totalDays = Math.ceil((latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+      const earliestDate = new Date(
+        Math.min(
+          ...limitedTimelineData.map(item => new Date(item.start).getTime())
+        )
+      );
+      const latestDate = new Date(
+        Math.max(
+          ...limitedTimelineData.map(item => new Date(item.end).getTime())
+        )
+      );
+      const totalDays = Math.ceil(
+        (latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
       // Generar todos los días (incluyendo fines de semana) para el encabezado
       const dateHeaders: Date[] = [];
       const currentDate = new Date(earliestDate);
@@ -222,15 +270,19 @@ export function Timeline({ data, planConfig }: TimelineProps) {
           // Mobile: use wider columns but show fewer days
           return 8; // 32px per column on mobile
         }
-        
+
         // Desktop: more conservative calculation
         const availableWidth = 1600 - 192; // 192px = 48 * 4 (task info width)
-        const optimalWidth = Math.max(3, Math.min(6, Math.floor(availableWidth / dateHeaders.length)));
+        const optimalWidth = Math.max(
+          3,
+          Math.min(6, Math.floor(availableWidth / dateHeaders.length))
+        );
         return optimalWidth;
       };
 
       // Use calculated width if columnWidth is 4 (default), otherwise use user selection
-      const effectiveColumnWidth = columnWidth === 4 ? calculateOptimalColumnWidth() : columnWidth;
+      const effectiveColumnWidth =
+        columnWidth === 4 ? calculateOptimalColumnWidth() : columnWidth;
 
       // Always show all date headers (days) in the global range
       const visibleDateHeaders = dateHeaders;
@@ -245,10 +297,21 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               Tasks in rows, time in columns - Microsoft Project format
             </p>
             <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-              <p>Showing {visibleDateHeaders.length} days from {earliestDate.toLocaleDateString()} to {latestDate.toLocaleDateString()}</p>
-              <p>Column width: {effectiveColumnWidth * 4}px (calculated: {effectiveColumnWidth}px base)</p>
+              <p>
+                Showing {visibleDateHeaders.length} days from{' '}
+                {earliestDate.toLocaleDateString()} to{' '}
+                {latestDate.toLocaleDateString()}
+              </p>
+              <p>
+                Column width: {effectiveColumnWidth * 4}px (calculated:{' '}
+                {effectiveColumnWidth}px base)
+              </p>
               <p>Total timeline span: {totalDays} days</p>
-              <p>Showing tasks {startIndex + 1}-{Math.min(endIndex, timelineData.length)} of {timelineData.length}</p>
+              <p>
+                Showing tasks {startIndex + 1}-
+                {Math.min(endIndex, timelineData.length)} of{' '}
+                {timelineData.length}
+              </p>
               {isMobile && (
                 <p className="text-blue-600 dark:text-blue-400 font-medium">
                   📱 Mobile view: Showing first 14 days for better readability
@@ -256,17 +319,22 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2 mb-2">
-            <label className="text-sm text-gray-600 dark:text-gray-400">Tasks per page:</label>
+            <label className="text-sm text-gray-600 dark:text-gray-400">
+              Tasks per page:
+            </label>
             <select
               value={tasksPerPage}
-              onChange={(e) => {
+              onChange={e => {
                 const value = Number(e.target.value);
                 setTasksPerPage(value);
                 setCurrentPage(0);
                 if (typeof window !== 'undefined') {
-                  localStorage.setItem('timeline-tasks-per-page', String(value));
+                  localStorage.setItem(
+                    'timeline-tasks-per-page',
+                    String(value)
+                  );
                 }
               }}
               className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -278,26 +346,42 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               <option value={100}>100</option>
             </select>
           </div>
-          
+
           <div className="overflow-x-auto w-full">
             <div className="w-full min-w-max">
               {/* Date Headers */}
               <div className="flex border-b border-gray-200 dark:border-gray-700">
-                <div className="w-28 p-0 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600 font-medium text-xs text-gray-700 dark:text-gray-300 flex-shrink-0 flex items-center justify-start" style={{ minWidth: '7rem', height: '24px' }}>
+                <div
+                  className="w-28 p-0 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600 font-medium text-xs text-gray-700 dark:text-gray-300 flex-shrink-0 flex items-center justify-start"
+                  style={{ minWidth: '7rem', height: '24px' }}
+                >
                   Task ID / ABAP
                 </div>
                 <div className="flex flex-1 min-w-0">
                   {visibleDateHeaders.map((date, index) => (
-                    <div 
+                    <div
                       key={index}
                       className={`h-6 border-r border-gray-200 dark:border-gray-600 relative flex-shrink-0 flex items-center justify-center ${
-                        date.getDay() === 0 || date.getDay() === 6 
-                          ? 'bg-red-50 dark:bg-red-900/20' 
+                        date.getDay() === 0 || date.getDay() === 6
+                          ? 'bg-red-50 dark:bg-red-900/20'
                           : 'bg-gray-50 dark:bg-gray-700'
                       }`}
-                      style={{ width: `${effectiveColumnWidth * 4}px`, minWidth: `${effectiveColumnWidth * 4}px` }}
+                      style={{
+                        width: `${effectiveColumnWidth * 4}px`,
+                        minWidth: `${effectiveColumnWidth * 4}px`,
+                      }}
                     >
-                      <span style={{ fontSize: '10px', lineHeight: '12px', display: 'block', margin: 0, textAlign: 'center' }}>{date.getDate()}</span>
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          lineHeight: '12px',
+                          display: 'block',
+                          margin: 0,
+                          textAlign: 'center',
+                        }}
+                      >
+                        {date.getDate()}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -311,19 +395,27 @@ export function Timeline({ data, planConfig }: TimelineProps) {
                 const businessDays: number[] = [];
                 for (let i = 0; i < dateHeaders.length; i++) {
                   const d = dateHeaders[i];
-                  if (d >= taskStart && d <= taskEnd && d.getDay() !== 0 && d.getDay() !== 6) {
+                  if (
+                    d >= taskStart &&
+                    d <= taskEnd &&
+                    d.getDay() !== 0 &&
+                    d.getDay() !== 6
+                  ) {
                     businessDays.push(i);
                   }
                 }
-                
+
                 return (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 h-6"
                   >
                     {/* Task Info */}
                     <div className="w-28 p-0 border-r border-gray-200 dark:border-gray-600 flex-shrink-0 flex items-center">
-                      <div className="font-medium text-gray-900 dark:text-white leading-[1] m-0 p-0" style={{ fontSize: '9px' }}>
+                      <div
+                        className="font-medium text-gray-900 dark:text-white leading-[1] m-0 p-0"
+                        style={{ fontSize: '9px' }}
+                      >
                         {String(item.Task)}
                       </div>
                     </div>
@@ -333,20 +425,28 @@ export function Timeline({ data, planConfig }: TimelineProps) {
                       {visibleDateHeaders.map((date, dateIndex) => {
                         // Solo pintar barra en días hábiles de la tarea
                         const isTaskDay = businessDays.includes(dateIndex);
-                        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                        
+                        const isWeekend =
+                          date.getDay() === 0 || date.getDay() === 6;
+
                         return (
-                          <div 
+                          <div
                             key={dateIndex}
                             className={`h-6 border-r border-gray-200 dark:border-gray-600 relative flex-shrink-0 ${
-                              isWeekend ? 'bg-red-50 dark:bg-red-900/20' : 'bg-white dark:bg-gray-800'
+                              isWeekend
+                                ? 'bg-red-50 dark:bg-red-900/20'
+                                : 'bg-white dark:bg-gray-800'
                             }`}
-                            style={{ width: `${effectiveColumnWidth * 4}px`, minWidth: `${effectiveColumnWidth * 4}px` }}
+                            style={{
+                              width: `${effectiveColumnWidth * 4}px`,
+                              minWidth: `${effectiveColumnWidth * 4}px`,
+                            }}
                           >
                             {isTaskDay && (
-                              <div 
+                              <div
                                 className="absolute inset-0 rounded-sm opacity-80"
-                                style={{ backgroundColor: getABAPColor(item.Resource) }}
+                                style={{
+                                  backgroundColor: getABAPColor(item.Resource),
+                                }}
                                 title={`${item.Task} - ${item.Resource} (${businessDays.length} days)`}
                               />
                             )}
@@ -359,11 +459,12 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               })}
             </div>
           </div>
-          
+
           {/* Pagination Controls */}
           <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {startIndex + 1}-{Math.min(endIndex, timelineData.length)} of {timelineData.length} tasks
+              Showing {startIndex + 1}-{Math.min(endIndex, timelineData.length)}{' '}
+              of {timelineData.length} tasks
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -374,11 +475,22 @@ export function Timeline({ data, planConfig }: TimelineProps) {
                 Previous
               </button>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                Page {currentPage + 1} of {Math.ceil(timelineData.length / tasksPerPage)}
+                Page {currentPage + 1} of{' '}
+                {Math.ceil(timelineData.length / tasksPerPage)}
               </span>
               <button
-                onClick={() => setCurrentPage(Math.min(Math.ceil(timelineData.length / tasksPerPage) - 1, currentPage + 1))}
-                disabled={currentPage >= Math.ceil(timelineData.length / tasksPerPage) - 1}
+                onClick={() =>
+                  setCurrentPage(
+                    Math.min(
+                      Math.ceil(timelineData.length / tasksPerPage) - 1,
+                      currentPage + 1
+                    )
+                  )
+                }
+                disabled={
+                  currentPage >=
+                  Math.ceil(timelineData.length / tasksPerPage) - 1
+                }
                 className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Next

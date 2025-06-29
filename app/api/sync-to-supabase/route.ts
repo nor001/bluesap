@@ -1,21 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { uploadFileToSupabase, updateCSVMetadata, CSV_FILE_NAME } from '@/lib/supabase';
-import { convertToOriginalCSVFormat, createCSVMetadata } from '@/lib/csv-processor';
+import {
+  uploadFileToSupabase,
+  updateCSVMetadata,
+  CSV_FILE_NAME,
+} from '@/lib/supabase';
+import {
+  convertToOriginalCSVFormat,
+  createCSVMetadata,
+} from '@/lib/csv-processor';
 
 interface SyncResponse {
   success: boolean;
   error?: string;
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<SyncResponse>> {
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<SyncResponse>> {
   try {
     const { data } = await request.json();
 
     if (!data || !Array.isArray(data) || data.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'No valid data provided'
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No valid data provided',
+        },
+        { status: 400 }
+      );
     }
 
     // Convert processed data back to original CSV format
@@ -27,33 +39,38 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncRespo
 
     // Try to upload to Supabase Storage
     const uploadSuccess = await uploadFileToSupabase(file);
-    
+
     if (uploadSuccess) {
       // Create metadata using centralized function
       const metadataToUpdate = createCSVMetadata(
-        data, 
-        file.size, 
+        data,
+        file.size,
         'user (synced)'
       );
 
       const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
-      
+
       if (metadataUpdated) {
         return NextResponse.json({
-          success: true
+          success: true,
         });
       }
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to sync to Supabase'
-    }, { status: 500 });
-
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Failed to sync to Supabase',
+      },
+      { status: 500 }
+    );
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Sync failed'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Sync failed',
+      },
+      { status: 500 }
+    );
   }
-} 
+}

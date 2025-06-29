@@ -19,11 +19,13 @@ export default function Home() {
     updateFilters,
     fetchCSVMetadata,
     loadFallbackData,
-    loadCachedData
+    loadCachedData,
   } = useAppStore();
 
   // State for UI
-  const [currentView, setCurrentView] = useState<'timeline' | 'metrics' | 'upload' | 'test'>('timeline');
+  const [currentView, setCurrentView] = useState<
+    'timeline' | 'metrics' | 'upload' | 'test'
+  >('timeline');
   const [showSidebar] = useState(true);
 
   // Load data on component mount
@@ -31,12 +33,12 @@ export default function Home() {
     const loadInitialData = async () => {
       // Try to load from cache first
       const cached = loadCachedData();
-      
+
       if (!cached) {
         // Try to load from fallback storage
         loadFallbackData();
       }
-      
+
       // Always try to fetch fresh metadata
       await fetchCSVMetadata();
     };
@@ -54,13 +56,30 @@ export default function Home() {
   // Get filtered data
   const getFilteredData = useCallback(() => {
     if (!assignedData || assignedData.length === 0) return [];
-    
+
     return assignedData.filter((item: Record<string, unknown>) => {
-      if (filters.selected_proy !== 'Todos' && item.proyecto !== filters.selected_proy) return false;
-      if (filters.selected_modulo !== 'Todos' && item.modulo !== filters.selected_modulo) return false;
-      if (filters.selected_grupo !== 'Todos' && item.grupo_dev !== filters.selected_grupo) return false;
-      if (filters.id_filter && !String(item.id).includes(filters.id_filter)) return false;
-      if (filters.consultor_ntt !== 'Todos' && item.consultor_ntt !== filters.consultor_ntt) return false;
+      if (
+        filters.selected_proy !== 'Todos' &&
+        item.proyecto !== filters.selected_proy
+      )
+        return false;
+      if (
+        filters.selected_modulo !== 'Todos' &&
+        item.modulo !== filters.selected_modulo
+      )
+        return false;
+      if (
+        filters.selected_grupo !== 'Todos' &&
+        item.grupo_dev !== filters.selected_grupo
+      )
+        return false;
+      if (filters.id_filter && !String(item.id).includes(filters.id_filter))
+        return false;
+      if (
+        filters.consultor_ntt !== 'Todos' &&
+        item.consultor_ntt !== filters.consultor_ntt
+      )
+        return false;
       return true;
     });
   }, [assignedData, filters]);
@@ -72,7 +91,9 @@ export default function Home() {
         <Sidebar />
 
         {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-64' : 'ml-0'}`}>
+        <div
+          className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-64' : 'ml-0'}`}
+        >
           <div className="p-6">
             {/* Header */}
             <div className="mb-6">
@@ -131,14 +152,14 @@ export default function Home() {
             {/* Content */}
             <div className="space-y-6">
               {/* Filters */}
-              <Filters 
+              <Filters
                 data={getFilteredData()}
                 onFilterChange={updateFilters}
               />
 
               {/* View Content */}
               {currentView === 'timeline' && (
-                <Timeline 
+                <Timeline
                   data={getFilteredData()}
                   planConfig={{
                     start_date_col: 'fecha_inicio',
@@ -150,16 +171,16 @@ export default function Home() {
                     resource_title: 'ABAP',
                     resources_title: 'ABAPs',
                     assigned_title: 'Asignado',
-                    use_group_based_assignment: false
+                    use_group_based_assignment: false,
                   }}
                 />
               )}
 
               {currentView === 'metrics' && (
-                <Metrics 
+                <Metrics
                   data={getFilteredData()}
                   planConfig={{
-                    resource_col: 'responsable'
+                    resource_col: 'responsable',
                   }}
                 />
               )}
@@ -171,13 +192,11 @@ export default function Home() {
                 </div>
               )}
 
-              {currentView === 'test' && (
-                <TestComponent />
-              )}
+              {currentView === 'test' && <TestComponent />}
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}

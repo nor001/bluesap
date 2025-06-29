@@ -17,9 +17,9 @@ export default function ValidacionDTPage() {
               📋 ¿Qué es DT?
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              La Documentación Técnica (DT) contiene las especificaciones técnicas detalladas, 
-              arquitectura del sistema, diagramas de flujo y detalles de implementación 
-              para el desarrollo de soluciones SAP.
+              La Documentación Técnica (DT) contiene las especificaciones
+              técnicas detalladas, arquitectura del sistema, diagramas de flujo
+              y detalles de implementación para el desarrollo de soluciones SAP.
             </p>
           </div>
 
@@ -41,11 +41,12 @@ export default function ValidacionDTPage() {
             🚀 Próximamente
           </h3>
           <p className="text-green-800 dark:text-green-200">
-            Este módulo estará disponible próximamente. Aquí podrás revisar y validar 
-            la documentación técnica de tus proyectos SAP con herramientas especializadas.
+            Este módulo estará disponible próximamente. Aquí podrás revisar y
+            validar la documentación técnica de tus proyectos SAP con
+            herramientas especializadas.
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

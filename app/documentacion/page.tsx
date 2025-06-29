@@ -39,21 +39,27 @@ export default function DocumentacionPage() {
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">🚀 Inicio Rápido</h4>
+            <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">
+              🚀 Inicio Rápido
+            </h4>
             <p className="text-sm text-blue-800 dark:text-blue-200">
               Guía paso a paso para comenzar a usar el sistema
             </p>
           </div>
-          
+
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">📊 Métricas</h4>
+            <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">
+              📊 Métricas
+            </h4>
             <p className="text-sm text-green-800 dark:text-green-200">
               Explicación de las métricas y KPIs del sistema
             </p>
           </div>
-          
+
           <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-            <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">🔍 FAQ</h4>
+            <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">
+              🔍 FAQ
+            </h4>
             <p className="text-sm text-purple-800 dark:text-purple-200">
               Preguntas frecuentes y soluciones comunes
             </p>
@@ -65,11 +71,12 @@ export default function DocumentacionPage() {
             📝 En Desarrollo
           </h3>
           <p className="text-yellow-800 dark:text-yellow-200">
-            Esta sección estará disponible próximamente con documentación completa, 
-            guías de usuario y recursos técnicos para optimizar el uso del sistema.
+            Esta sección estará disponible próximamente con documentación
+            completa, guías de usuario y recursos técnicos para optimizar el uso
+            del sistema.
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

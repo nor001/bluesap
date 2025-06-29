@@ -8,14 +8,19 @@ const AUDITOR_CONFIG = {
   DEBOUNCE_DELAY: 1000, // 1 second
   SLOW_CALL_THRESHOLD: 2000, // 2 seconds
   MAX_CALLS_PER_ENDPOINT: 5, // Max calls per endpoint per minute
-  CLEANUP_INTERVAL: 5 * 60 * 1000 // 5 minutes
+  CLEANUP_INTERVAL: 5 * 60 * 1000, // 5 minutes
 };
 
 // ✅ RULE PATTERN: Performance Auditor Interface
 interface PerformanceAuditor {
   shouldAllowCall(endpoint: string, method: string): boolean;
   recordCall(endpoint: string, method: string, component: string): void;
-  recordCompletion(endpoint: string, method: string, duration: number, success: boolean): void;
+  recordCompletion(
+    endpoint: string,
+    method: string,
+    duration: number,
+    success: boolean
+  ): void;
   getMetrics(): PerformanceMetrics;
   generateReport(): string;
   getRecentCalls(minutes?: number): APICall[];
@@ -50,14 +55,14 @@ class PerformanceAuditorImpl implements PerformanceAuditor {
 
   shouldAllowCall(endpoint: string, method: string): boolean {
     this.cleanup();
-    
+
     const key = `${method}:${endpoint}`;
     const currentCount = this.callCounts.get(key) || 0;
-    
+
     if (currentCount >= AUDITOR_CONFIG.MAX_CALLS_PER_ENDPOINT) {
       return false;
     }
-    
+
     this.callCounts.set(key, currentCount + 1);
     return true;
   }
@@ -69,17 +74,20 @@ class PerformanceAuditorImpl implements PerformanceAuditor {
       component,
       timestamp: Date.now(),
       duration: 0,
-      success: false
+      success: false,
     });
   }
 
-  recordCompletion(endpoint: string, method: string, duration: number, success: boolean): void {
-    const call = this.calls.find(c => 
-      c.endpoint === endpoint && 
-      c.method === method && 
-      c.duration === 0
+  recordCompletion(
+    endpoint: string,
+    method: string,
+    duration: number,
+    success: boolean
+  ): void {
+    const call = this.calls.find(
+      c => c.endpoint === endpoint && c.method === method && c.duration === 0
     );
-    
+
     if (call) {
       call.duration = duration;
       call.success = success;
@@ -88,21 +96,25 @@ class PerformanceAuditorImpl implements PerformanceAuditor {
 
   getMetrics(): PerformanceMetrics {
     const completedCalls = this.calls.filter(c => c.duration > 0);
-    
+
     return {
       totalCalls: completedCalls.length,
-      slowCalls: completedCalls.filter(c => c.duration > AUDITOR_CONFIG.SLOW_CALL_THRESHOLD).length,
+      slowCalls: completedCalls.filter(
+        c => c.duration > AUDITOR_CONFIG.SLOW_CALL_THRESHOLD
+      ).length,
       failedCalls: completedCalls.filter(c => !c.success).length,
-      averageResponseTime: completedCalls.length > 0 
-        ? completedCalls.reduce((sum, c) => sum + c.duration, 0) / completedCalls.length 
-        : 0
+      averageResponseTime:
+        completedCalls.length > 0
+          ? completedCalls.reduce((sum, c) => sum + c.duration, 0) /
+            completedCalls.length
+          : 0,
     };
   }
 
   generateReport(): string {
     const metrics = this.getMetrics();
     const recentCalls = this.getRecentCalls(5);
-    
+
     return `
 📊 Performance Report
 ====================
@@ -112,22 +124,25 @@ Failed Calls: ${metrics.failedCalls}
 Average Response Time: ${Math.round(metrics.averageResponseTime)}ms
 
 Recent Calls (last 5 minutes):
-${recentCalls.map(call => 
-  `  ${call.method} ${call.endpoint} - ${call.duration}ms ${call.success ? '✅' : '❌'}`
-).join('\n')}
+${recentCalls
+  .map(
+    call =>
+      `  ${call.method} ${call.endpoint} - ${call.duration}ms ${call.success ? '✅' : '❌'}`
+  )
+  .join('\n')}
     `.trim();
   }
 
   getRecentCalls(minutes: number = 5): APICall[] {
-    const cutoff = Date.now() - (minutes * 60 * 1000);
+    const cutoff = Date.now() - minutes * 60 * 1000;
     return this.calls.filter(call => call.timestamp > cutoff);
   }
 
   private cleanup(): void {
     const now = Date.now();
     if (now - this.lastCleanup > AUDITOR_CONFIG.CLEANUP_INTERVAL) {
-      this.calls = this.calls.filter(call => 
-        now - call.timestamp < AUDITOR_CONFIG.CLEANUP_INTERVAL
+      this.calls = this.calls.filter(
+        call => now - call.timestamp < AUDITOR_CONFIG.CLEANUP_INTERVAL
       );
       this.callCounts.clear();
       this.lastCleanup = now;
@@ -145,10 +160,12 @@ export async function auditedFetch<T = unknown>(
 ): Promise<T> {
   const { component, skipAudit = false, ...fetchOptions } = options;
   const method = fetchOptions.method || 'GET';
-  
+
   // ALWAYS audit the API call first
   if (!skipAudit && !performanceAuditor.shouldAllowCall(url, method)) {
-    throw new Error(`API call blocked by performance auditor: ${method} ${url}`);
+    throw new Error(
+      `API call blocked by performance auditor: ${method} ${url}`
+    );
   }
 
   // ALWAYS record the call for tracking
@@ -160,13 +177,16 @@ export async function auditedFetch<T = unknown>(
   try {
     const response = await fetch(url, fetchOptions);
     const data = await response.json();
-    
+
     success = response.ok;
-    
+
     if (!response.ok) {
-      throw new Error((data as { error?: string }).error || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(
+        (data as { error?: string }).error ||
+          `HTTP ${response.status}: ${response.statusText}`
+      );
     }
-    
+
     return data as T;
   } catch (error) {
     success = false;
@@ -194,4 +214,4 @@ export type { PerformanceMetrics, APICall, AuditedFetchOptions };
 // Log performance report in development
 if (process.env.NODE_ENV === 'development') {
   // Performance logging disabled
-} 
+}

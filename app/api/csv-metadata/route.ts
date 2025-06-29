@@ -7,36 +7,36 @@ export async function GET() {
     // Try to get metadata from Supabase first
     try {
       const metadata = await getCSVMetadata();
-      
+
       if (metadata) {
         return NextResponse.json({
           success: true,
-          metadata: metadata
+          metadata: metadata,
         });
       }
     } catch {
       // Supabase failed, try fallback
     }
-    
+
     // If Supabase failed, try fallback data
     const fallback = getFallbackData();
-    
+
     if (fallback && fallback.metadata) {
       return NextResponse.json({
         success: true,
-        metadata: fallback.metadata
+        metadata: fallback.metadata,
       });
     }
-    
+
     // No metadata available
     return NextResponse.json({
       success: false,
-      error: 'No metadata available'
+      error: 'No metadata available',
     });
   } catch {
     return NextResponse.json({
       success: false,
-      error: 'Failed to get metadata'
+      error: 'Failed to get metadata',
     });
   }
-} 
+}

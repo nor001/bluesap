@@ -129,4 +129,4 @@ export class SecurityError extends Error {
     super(message);
     this.name = 'SecurityError';
   }
-} 
+}

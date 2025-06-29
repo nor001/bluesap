@@ -1,9 +1,11 @@
-"use client";
+'use client';
 import { useState, useEffect } from 'react';
 import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
 export function SupabaseStatus() {
-  const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [status, setStatus] = useState<'checking' | 'connected' | 'error'>(
+    'checking'
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -16,7 +18,7 @@ export function SupabaseStatus() {
 
       try {
         const { error } = await supabaseClient!.auth.getSession();
-        
+
         if (error) {
           setStatus('error');
           setError(error.message);
@@ -51,4 +53,4 @@ export function SupabaseStatus() {
   }
 
   return null;
-} 
+}

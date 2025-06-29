@@ -8,6 +8,21 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   swcMinify: false, // Deshabilitado temporalmente para resolver error SWC en Windows
+
+  // Configuración ESLint para fallar en errores
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: false,
+  },
+
+  // Configuración TypeScript para fallar en errores
+  typescript: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has TypeScript errors.
+    ignoreBuildErrors: false,
+  },
+
   // Configuración para API routes
   async headers() {
     return [
@@ -28,8 +43,8 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
-}
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig;

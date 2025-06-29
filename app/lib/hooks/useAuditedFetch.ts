@@ -4,7 +4,11 @@
  */
 
 import { useCallback, useState } from 'react';
-import { auditAPICall, recordAPICall, recordAPICompletion } from '../performance-auditor';
+import {
+  auditAPICall,
+  recordAPICall,
+  recordAPICompletion,
+} from '../performance-auditor';
 
 interface AuditedFetchOptions extends RequestInit {
   component: string;
@@ -24,19 +28,22 @@ export function useAuditedFetch(): UseAuditedFetchReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const execute = useCallback(async (url: string, options: AuditedFetchOptions) => {
-    setLoading(true);
-    setError(null);
+  const execute = useCallback(
+    async (url: string, options: AuditedFetchOptions) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const result = await auditedFetch(url, options);
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Request failed');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+      try {
+        const result = await auditedFetch(url, options);
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Request failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   const reset = useCallback(() => {
     setData(null);
@@ -49,7 +56,7 @@ export function useAuditedFetch(): UseAuditedFetchReturn {
     loading,
     error,
     execute,
-    reset
+    reset,
   };
 }
 
@@ -62,25 +69,26 @@ export function useAuditedAPI<T = unknown>() {
   const [loading, setLoading] = useState(false);
   const { execute } = useAuditedFetch();
 
-  const executeAPI = useCallback(async (
-    url: string,
-    options: AuditedFetchOptions
-  ): Promise<T | null> => {
-    setLoading(true);
-    setError(null);
+  const executeAPI = useCallback(
+    async (url: string, options: AuditedFetchOptions): Promise<T | null> => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      await execute(url, options);
-      // Note: This is a simplified version - in practice you'd want to get the result
-      return null;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [execute]);
+      try {
+        await execute(url, options);
+        // Note: This is a simplified version - in practice you'd want to get the result
+        return null;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Unknown error';
+        setError(errorMessage);
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [execute]
+  );
 
   const refetch = useCallback(async () => {
     // This would need the last URL and options to be stored
@@ -92,7 +100,7 @@ export function useAuditedAPI<T = unknown>() {
     error,
     loading,
     execute: executeAPI,
-    refetch
+    refetch,
   };
 }
 
@@ -105,10 +113,12 @@ export async function auditedFetch<T = unknown>(
 ): Promise<T> {
   const { component, skipAudit = false, ...fetchOptions } = options;
   const method = fetchOptions.method || 'GET';
-  
+
   // Audit the API call
   if (!skipAudit && !auditAPICall(url, method, component)) {
-    throw new Error(`API call blocked by performance auditor: ${method} ${url}`);
+    throw new Error(
+      `API call blocked by performance auditor: ${method} ${url}`
+    );
   }
 
   // Record the call
@@ -120,13 +130,16 @@ export async function auditedFetch<T = unknown>(
   try {
     const response = await fetch(url, fetchOptions);
     const data = await response.json();
-    
+
     success = response.ok;
-    
+
     if (!response.ok) {
-      throw new Error((data as { error?: string }).error || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(
+        (data as { error?: string }).error ||
+          `HTTP ${response.status}: ${response.statusText}`
+      );
     }
-    
+
     return data as T;
   } catch (error) {
     success = false;
@@ -135,4 +148,4 @@ export async function auditedFetch<T = unknown>(
     const duration = Date.now() - startTime;
     recordAPICompletion(url, method, duration, success);
   }
-} 
+}

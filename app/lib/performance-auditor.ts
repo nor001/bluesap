@@ -28,7 +28,7 @@ class PerformanceAuditor {
     duplicateCalls: 0,
     averageResponseTime: 0,
     slowCalls: 0,
-    errors: 0
+    errors: 0,
   };
 
   private readonly DEBOUNCE_DELAY = 1000; // 1 second
@@ -47,15 +47,20 @@ class PerformanceAuditor {
   /**
    * Check if API call should be allowed (debounce + duplicate prevention)
    */
-  shouldAllowCall(endpoint: string, method: string, component: string): boolean {
+  shouldAllowCall(
+    endpoint: string,
+    method: string,
+    component: string
+  ): boolean {
     const callKey = `${method}:${endpoint}`;
     const now = Date.now();
-    
+
     // Check for existing calls in the last debounce period
     const recentCalls = this.apiCalls.get(callKey) || [];
-    const recentCall = recentCalls.find(call => 
-      now - call.timestamp < this.DEBOUNCE_DELAY && 
-      call.component === component
+    const recentCall = recentCalls.find(
+      call =>
+        now - call.timestamp < this.DEBOUNCE_DELAY &&
+        call.component === component
     );
 
     if (recentCall) {
@@ -64,8 +69,8 @@ class PerformanceAuditor {
     }
 
     // Check for too many calls to the same endpoint
-    const callsInLastMinute = recentCalls.filter(call => 
-      now - call.timestamp < 60000
+    const callsInLastMinute = recentCalls.filter(
+      call => now - call.timestamp < 60000
     );
 
     if (callsInLastMinute.length >= this.MAX_CALLS_PER_ENDPOINT) {
@@ -78,14 +83,19 @@ class PerformanceAuditor {
   /**
    * Record an API call
    */
-  recordCall(endpoint: string, method: string, component: string, data?: unknown): void {
+  recordCall(
+    endpoint: string,
+    method: string,
+    component: string,
+    data?: unknown
+  ): void {
     const callKey = `${method}:${endpoint}`;
     const call: APICall = {
       endpoint,
       method,
       timestamp: Date.now(),
       component,
-      data
+      data,
     };
 
     if (!this.apiCalls.has(callKey)) {
@@ -102,7 +112,12 @@ class PerformanceAuditor {
   /**
    * Record API call completion with timing
    */
-  recordCompletion(endpoint: string, method: string, duration: number, success: boolean): void {
+  recordCompletion(
+    endpoint: string,
+    method: string,
+    duration: number,
+    success: boolean
+  ): void {
     if (!success) {
       this.metrics.errors++;
     }
@@ -126,13 +141,13 @@ class PerformanceAuditor {
    * Get recent API calls for debugging
    */
   getRecentCalls(minutes: number = 5): APICall[] {
-    const cutoff = Date.now() - (minutes * 60 * 1000);
+    const cutoff = Date.now() - minutes * 60 * 1000;
     const allCalls: APICall[] = [];
-    
+
     for (const calls of this.apiCalls.values()) {
       allCalls.push(...calls.filter(call => call.timestamp > cutoff));
     }
-    
+
     return allCalls.sort((a, b) => b.timestamp - a.timestamp);
   }
 
@@ -147,7 +162,7 @@ class PerformanceAuditor {
       duplicateCalls: 0,
       averageResponseTime: 0,
       slowCalls: 0,
-      errors: 0
+      errors: 0,
     };
   }
 
@@ -156,9 +171,13 @@ class PerformanceAuditor {
    */
   generateReport(): string {
     const recentCalls = this.getRecentCalls();
-    const duplicateRate = this.metrics.totalCalls > 0 
-      ? ((this.metrics.duplicateCalls / this.metrics.totalCalls) * 100).toFixed(1)
-      : '0';
+    const duplicateRate =
+      this.metrics.totalCalls > 0
+        ? (
+            (this.metrics.duplicateCalls / this.metrics.totalCalls) *
+            100
+          ).toFixed(1)
+        : '0';
 
     return `
 📊 Performance Auditor Report
@@ -170,15 +189,19 @@ Slow Calls (>${this.SLOW_CALL_THRESHOLD}ms): ${this.metrics.slowCalls}
 Errors: ${this.metrics.errors}
 
 Recent Calls (last 5 minutes): ${recentCalls.length}
-${recentCalls.slice(0, 10).map(call => 
-  `  ${call.method} ${call.endpoint} (${call.component}) - ${new Date(call.timestamp).toLocaleTimeString()}`
-).join('\n')}
+${recentCalls
+  .slice(0, 10)
+  .map(
+    call =>
+      `  ${call.method} ${call.endpoint} (${call.component}) - ${new Date(call.timestamp).toLocaleTimeString()}`
+  )
+  .join('\n')}
     `.trim();
   }
 
   private cleanupOldCalls(): void {
-    const cutoff = Date.now() - (5 * 60 * 1000); // 5 minutes
-    
+    const cutoff = Date.now() - 5 * 60 * 1000; // 5 minutes
+
     for (const [key, calls] of this.apiCalls.entries()) {
       const filteredCalls = calls.filter(call => call.timestamp > cutoff);
       if (filteredCalls.length === 0) {
@@ -190,7 +213,9 @@ ${recentCalls.slice(0, 10).map(call =>
   }
 
   private updateAverageResponseTime(duration: number): void {
-    const total = this.metrics.averageResponseTime * (this.metrics.totalCalls - 1) + duration;
+    const total =
+      this.metrics.averageResponseTime * (this.metrics.totalCalls - 1) +
+      duration;
     this.metrics.averageResponseTime = total / this.metrics.totalCalls;
   }
 }
@@ -199,15 +224,29 @@ ${recentCalls.slice(0, 10).map(call =>
 export const performanceAuditor = PerformanceAuditor.getInstance();
 
 // Utility functions for easy integration
-export function auditAPICall(endpoint: string, method: string, component: string): boolean {
+export function auditAPICall(
+  endpoint: string,
+  method: string,
+  component: string
+): boolean {
   return performanceAuditor.shouldAllowCall(endpoint, method, component);
 }
 
-export function recordAPICall(endpoint: string, method: string, component: string, data?: unknown): void {
+export function recordAPICall(
+  endpoint: string,
+  method: string,
+  component: string,
+  data?: unknown
+): void {
   performanceAuditor.recordCall(endpoint, method, component, data);
 }
 
-export function recordAPICompletion(endpoint: string, method: string, duration: number, success: boolean): void {
+export function recordAPICompletion(
+  endpoint: string,
+  method: string,
+  duration: number,
+  success: boolean
+): void {
   performanceAuditor.recordCompletion(endpoint, method, duration, success);
 }
 
@@ -220,4 +259,4 @@ export function logPerformanceReport(): void {
   if (process.env.NODE_ENV === 'development') {
     // Performance report logging disabled
   }
-} 
+}

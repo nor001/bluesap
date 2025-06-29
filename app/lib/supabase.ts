@@ -1,14 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Use service role key for full admin access
-const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl =
+  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Check if Supabase is configured with service role key
 const isSupabaseConfigured = supabaseUrl && supabaseServiceKey;
 
 // Create Supabase client with service role key for full access
-export const supabase = isSupabaseConfigured 
+export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: true,
@@ -61,7 +62,9 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
 }
 
 // Function to update CSV metadata with error handling
-export async function updateCSVMetadata(metadata: CSVMetadata): Promise<boolean> {
+export async function updateCSVMetadata(
+  metadata: CSVMetadata
+): Promise<boolean> {
   if (!isSupabaseConfigured) {
     return false;
   }
@@ -93,7 +96,7 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
       .from(CSV_BUCKET_NAME)
       .upload(CSV_FILE_NAME, file, {
         upsert: true,
-        contentType: 'text/csv'
+        contentType: 'text/csv',
       });
 
     if (error) {
@@ -127,14 +130,14 @@ export async function downloadFileFromSupabase(): Promise<string | null> {
     }
 
     const csvContent = await data.text();
-    
+
     if (!csvContent || csvContent.trim().length === 0) {
       return null;
     }
-    
+
     return csvContent;
   } catch {
     console.error('Failed to download file from Supabase');
     return null;
   }
-} 
+}

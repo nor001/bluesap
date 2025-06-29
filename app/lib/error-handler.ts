@@ -2,7 +2,13 @@
 // Operational layer: Security-first, AI-optimized error management
 
 export interface AppError {
-  type: 'validation' | 'network' | 'auth' | 'storage' | 'processing' | 'unknown';
+  type:
+    | 'validation'
+    | 'network'
+    | 'auth'
+    | 'storage'
+    | 'processing'
+    | 'unknown';
   message: string;
   code?: string;
   details?: unknown;
@@ -31,7 +37,7 @@ export function createError(
     message,
     details,
     timestamp: Date.now(),
-    userFriendly
+    userFriendly,
   };
 }
 
@@ -43,7 +49,7 @@ export function errorToResponse(error: AppError): ErrorResponse {
     success: false,
     error: error.userFriendly ? error.message : 'An error occurred',
     errorType: error.type,
-    details: error.userFriendly ? error.details : undefined
+    details: error.userFriendly ? error.details : undefined,
   };
 }
 
@@ -59,7 +65,7 @@ export function handleCSVError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   if (error.message?.includes('No valid data found')) {
     return createError(
       'validation',
@@ -68,7 +74,7 @@ export function handleCSVError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   if (error.message?.includes('at least 3 lines')) {
     return createError(
       'validation',
@@ -77,7 +83,7 @@ export function handleCSVError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   return createError(
     'processing',
     'Error processing CSV file. Please try again.',
@@ -98,7 +104,7 @@ export function handleSupabaseError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   if (error.message?.includes('auth')) {
     return createError(
       'auth',
@@ -107,7 +113,7 @@ export function handleSupabaseError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   return createError(
     'storage',
     'Database connection error. Using local storage.',
@@ -128,7 +134,7 @@ export function handleUploadError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   if (error.message?.includes('No file provided')) {
     return createError(
       'validation',
@@ -137,7 +143,7 @@ export function handleUploadError(error: { message?: string }): AppError {
       true
     );
   }
-  
+
   return createError(
     'processing',
     'Upload failed. Please try again.',
@@ -155,7 +161,7 @@ export function logError(error: AppError, context?: string) {
       type: error.type,
       message: error.message,
       details: error.details,
-      timestamp: new Date(error.timestamp).toISOString()
+      timestamp: new Date(error.timestamp).toISOString(),
     });
   }
 }
@@ -167,7 +173,7 @@ export function getUserFriendlyMessage(error: AppError): string {
   if (error.userFriendly) {
     return error.message;
   }
-  
+
   // Fallback messages for non-user-friendly errors
   switch (error.type) {
     case 'validation':
@@ -183,4 +189,4 @@ export function getUserFriendlyMessage(error: AppError): string {
     default:
       return 'An unexpected error occurred. Please try again.';
   }
-} 
+}

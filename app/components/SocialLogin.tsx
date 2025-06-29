@@ -9,22 +9,24 @@ export function SocialLogin() {
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
-    
+
     try {
       // Verificar si Supabase está disponible
       if (!isSupabaseAvailable()) {
-        setError('Error de configuración. Por favor, contacta al administrador.');
+        setError(
+          'Error de configuración. Por favor, contacta al administrador.'
+        );
         setLoading(false);
         return;
       }
-      
+
       const { data, error } = await supabaseClient!.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: window.location.origin + '/auth/callback',
         },
       });
-      
+
       if (error) {
         setError(error.message);
         setLoading(false);
@@ -36,7 +38,11 @@ export function SocialLogin() {
         setLoading(false);
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error desconocido durante el login');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Error desconocido durante el login'
+      );
       setLoading(false);
     }
   };
@@ -44,12 +50,10 @@ export function SocialLogin() {
   return (
     <div className="w-full max-w-sm mx-auto mt-8">
       <h2 className="text-xl font-bold mb-4 text-center">Iniciar sesión</h2>
-      
+
       <button
         className={`w-full py-2 mb-3 bg-white border border-gray-300 rounded flex items-center justify-center transition-colors ${
-          loading 
-            ? 'opacity-50 cursor-not-allowed' 
-            : 'hover:bg-gray-50'
+          loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
         }`}
         onClick={handleLogin}
         disabled={loading}
@@ -61,12 +65,16 @@ export function SocialLogin() {
           </>
         ) : (
           <>
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="h-5 w-5 mr-2" />
+            <img
+              src="https://www.svgrepo.com/show/475656/google-color.svg"
+              alt="Google"
+              className="h-5 w-5 mr-2"
+            />
             Continuar con Google
           </>
         )}
       </button>
-      
+
       {error && (
         <div className="text-red-600 text-sm mt-2 text-center p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
           {error}
@@ -74,4 +82,4 @@ export function SocialLogin() {
       )}
     </div>
   );
-} 
+}

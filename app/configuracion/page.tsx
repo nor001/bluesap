@@ -39,21 +39,27 @@ export default function ConfiguracionPage() {
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">🎨 Apariencia</h4>
+            <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">
+              🎨 Apariencia
+            </h4>
             <p className="text-sm text-blue-800 dark:text-blue-200">
               Configurar tema, colores y diseño visual
             </p>
           </div>
-          
+
           <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">🔔 Notificaciones</h4>
+            <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">
+              🔔 Notificaciones
+            </h4>
             <p className="text-sm text-green-800 dark:text-green-200">
               Configurar alertas y notificaciones del sistema
             </p>
           </div>
-          
+
           <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
-            <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">🔐 Seguridad</h4>
+            <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">
+              🔐 Seguridad
+            </h4>
             <p className="text-sm text-purple-800 dark:text-purple-200">
               Configuración de autenticación y permisos
             </p>
@@ -66,12 +72,21 @@ export default function ConfiguracionPage() {
           </h3>
           <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
             <div>
-              <p><strong>Versión:</strong> 1.0.0</p>
-              <p><strong>Última actualización:</strong> 25 de junio, 2025</p>
+              <p>
+                <strong>Versión:</strong> 1.0.0
+              </p>
+              <p>
+                <strong>Última actualización:</strong> 25 de junio, 2025
+              </p>
             </div>
             <div>
-              <p><strong>Estado:</strong> <span className="text-green-600">Operativo</span></p>
-              <p><strong>Base de datos:</strong> Supabase</p>
+              <p>
+                <strong>Estado:</strong>{' '}
+                <span className="text-green-600">Operativo</span>
+              </p>
+              <p>
+                <strong>Base de datos:</strong> Supabase
+              </p>
             </div>
           </div>
         </div>
@@ -81,11 +96,11 @@ export default function ConfiguracionPage() {
             🚧 En Desarrollo
           </h3>
           <p className="text-orange-800 dark:text-orange-200">
-            El panel de configuración completo estará disponible próximamente con todas las opciones 
-            de personalización y ajustes del sistema.
+            El panel de configuración completo estará disponible próximamente
+            con todas las opciones de personalización y ajustes del sistema.
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

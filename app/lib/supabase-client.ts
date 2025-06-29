@@ -8,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;
 
 // Create Supabase client for frontend (public access)
-export const supabaseClient = isSupabaseConfigured 
+export const supabaseClient = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
@@ -19,4 +19,4 @@ export const supabaseClient = isSupabaseConfigured
   : null;
 
 // Export a function to check if Supabase is configured
-export const isSupabaseAvailable = () => !!supabaseClient; 
+export const isSupabaseAvailable = () => !!supabaseClient;

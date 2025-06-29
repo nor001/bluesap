@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run lint && npm run type-check && next build",
     "start": "next start",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "lint": "next lint --fix",
+    "lint:strict": "next lint --max-warnings 0",
+    "type-check": "tsc --noEmit",
+    "pre-build": "npm run lint:strict && npm run type-check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.1",
@@ -41,6 +45,7 @@
     "eslint": "^8.52.0",
     "eslint-config-next": "^14.0.0",
     "postcss": "^8.4.31",
+    "prettier": "^3.6.2",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.2.0"
   }

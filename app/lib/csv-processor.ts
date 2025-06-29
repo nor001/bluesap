@@ -26,42 +26,42 @@ export interface CSVMetadata {
 export function processSpecialCSV(csvText: string): ProcessedCSVData {
   // Split text into lines and skip first 2 lines (special format)
   const lines = csvText.split('\n');
-  
+
   if (lines.length < 3) {
     throw new Error('CSV file must have at least 3 lines');
   }
-  
+
   // Remove first 2 lines and join the rest
   const csvContent = lines.slice(2).join('\n');
-  
+
   // Parse CSV with Papa Parse using the 3rd line as header
   const result = Papa.parse(csvContent, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (header) => header.trim(),
-    transform: (value) => value.trim()
+    transformHeader: header => header.trim(),
+    transform: value => value.trim(),
   });
 
   if (result.errors.length > 0) {
-    throw new Error(`CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`);
+    throw new Error(
+      `CSV parsing errors: ${result.errors.map(e => e.message).join(', ')}`
+    );
   }
 
   // Clean and validate data
   const data = result.data as CSVRow[];
   const originalRowCount = data.length;
-  
+
   // Remove rows where PROY is empty or contains non-data values
-  const cleanedData = data.filter(row => 
-    row.PROY && 
-    row.PROY !== '' && 
-    row.PROY !== 'PROY' &&
-    row.PROY !== 'nan'
+  const cleanedData = data.filter(
+    row =>
+      row.PROY && row.PROY !== '' && row.PROY !== 'PROY' && row.PROY !== 'nan'
   );
 
   // Normalize date columns
   const normalizedData = cleanedData.map(row => {
     const normalizedRow = { ...row };
-    
+
     // Normalize date columns
     const dateColumns = [
       'esfu_disponible',
@@ -71,7 +71,7 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
       'available_test_date',
       'plan_abap_pu_ini',
       'pu_ini',
-      'Fecha Fin Real'
+      'Fecha Fin Real',
     ];
 
     dateColumns.forEach(col => {
@@ -106,7 +106,7 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
   return {
     data: normalizedData,
     rowCount: normalizedData.length,
-    originalRowCount
+    originalRowCount,
   };
 }
 
@@ -123,19 +123,23 @@ export function convertToOriginalCSVFormat(data: CSVRow[]): string {
   const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(','),
-    ...data.map(row => 
-      headers.map(header => {
-        const value = row[header];
-        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-      }).join(',')
-    )
+    ...data.map(row =>
+      headers
+        .map(header => {
+          const value = row[header];
+          return typeof value === 'string' && value.includes(',')
+            ? `"${value}"`
+            : value;
+        })
+        .join(',')
+    ),
   ].join('\n');
 
   // Add the special header format
   return [
     'SAP Project Planning Data', // Line 1: Title
     '', // Line 2: Empty line
-    csvContent // Line 3+: Headers and data
+    csvContent, // Line 3+: Headers and data
   ].join('\n');
 }
 
@@ -152,12 +156,16 @@ export function convertToSimpleCSV(data: CSVRow[]): string {
   const headers = Object.keys(data[0]);
   return [
     headers.join(','),
-    ...data.map(row => 
-      headers.map(header => {
-        const value = row[header];
-        return typeof value === 'string' && value.includes(',') ? `"${value}"` : value;
-      }).join(',')
-    )
+    ...data.map(row =>
+      headers
+        .map(header => {
+          const value = row[header];
+          return typeof value === 'string' && value.includes(',')
+            ? `"${value}"`
+            : value;
+        })
+        .join(',')
+    ),
   ].join('\n');
 }
 
@@ -170,8 +178,8 @@ export function convertToSimpleCSV(data: CSVRow[]): string {
  * @returns Metadata del CSV
  */
 export function createCSVMetadata(
-  data: CSVRow[], 
-  fileSize: number, 
+  data: CSVRow[],
+  fileSize: number,
   uploadedBy: string = 'user',
   id?: number
 ): CSVMetadata {
@@ -180,7 +188,7 @@ export function createCSVMetadata(
     uploaded_at: new Date().toISOString(),
     file_size: fileSize,
     uploaded_by: uploadedBy,
-    row_count: data.length
+    row_count: data.length,
   };
 }
 
@@ -201,4 +209,4 @@ export function validateCSVFile(file: File): boolean {
   }
 
   return true;
-} 
+}

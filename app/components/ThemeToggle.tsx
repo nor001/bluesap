@@ -19,7 +19,7 @@ export function ThemeToggle() {
       >
         <Sun className="h-4 w-4" />
       </button>
-      
+
       <button
         onClick={() => setTheme('system')}
         className={`p-2 rounded-md transition-colors ${
@@ -31,7 +31,7 @@ export function ThemeToggle() {
       >
         <Monitor className="h-4 w-4" />
       </button>
-      
+
       <button
         onClick={() => setTheme('dark')}
         className={`p-2 rounded-md transition-colors ${
@@ -45,4 +45,4 @@ export function ThemeToggle() {
       </button>
     </div>
   );
-} 
+}

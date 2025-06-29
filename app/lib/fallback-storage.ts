@@ -22,11 +22,14 @@ let memoryCache: FallbackData | null = null;
  * Enhanced fallback storage with local persistence
  * Preserves special CSV format and corporate constraints
  */
-export function setFallbackData(csvData: Array<Record<string, unknown>>, metadata: Record<string, unknown>) {
+export function setFallbackData(
+  csvData: Array<Record<string, unknown>>,
+  metadata: Record<string, unknown>
+) {
   const fallbackData: FallbackData = {
     csvData: [...csvData],
     metadata: { ...metadata },
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
 
   // Update memory cache
@@ -36,9 +39,9 @@ export function setFallbackData(csvData: Array<Record<string, unknown>>, metadat
   try {
     const storageData: FallbackStorage = {
       data: fallbackData,
-      version: CURRENT_VERSION
+      version: CURRENT_VERSION,
     };
-    
+
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
     }
@@ -53,7 +56,7 @@ export function getFallbackData(): FallbackData | null {
     return {
       csvData: [...memoryCache.csvData],
       metadata: memoryCache.metadata ? { ...memoryCache.metadata } : null,
-      timestamp: memoryCache.timestamp
+      timestamp: memoryCache.timestamp,
     };
   }
 
@@ -63,14 +66,16 @@ export function getFallbackData(): FallbackData | null {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const storageData: FallbackStorage = JSON.parse(stored);
-        
+
         // Validate version compatibility
         if (storageData.version === CURRENT_VERSION && storageData.data) {
           memoryCache = storageData.data;
           return {
             csvData: [...storageData.data.csvData],
-            metadata: storageData.data.metadata ? { ...storageData.data.metadata } : null,
-            timestamp: storageData.data.timestamp
+            metadata: storageData.data.metadata
+              ? { ...storageData.data.metadata }
+              : null,
+            timestamp: storageData.data.timestamp,
           };
         }
       }
@@ -90,7 +95,7 @@ export function hasFallbackData(): boolean {
 
 export function clearFallbackData() {
   memoryCache = null;
-  
+
   try {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
@@ -107,7 +112,7 @@ export function clearFallbackData() {
 export function getFallbackDataAge(): number {
   const data = getFallbackData();
   if (!data) return -1;
-  
+
   const ageMs = Date.now() - data.timestamp;
   return Math.floor(ageMs / (1000 * 60)); // Convert to minutes
 }
@@ -118,4 +123,4 @@ export function getFallbackDataAge(): number {
 export function isFallbackDataFresh(): boolean {
   const ageMinutes = getFallbackDataAge();
   return ageMinutes >= 0 && ageMinutes < 24 * 60; // 24 hours
-} 
+}

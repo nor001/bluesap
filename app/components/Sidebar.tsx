@@ -22,31 +22,60 @@ const tabs = [
 export default function Sidebar() {
   const pathname = usePathname();
   const [dragActive, setDragActive] = useState(false);
-  const { filters, updateFilters, assignedData, csvData, csvMetadata, uploadCSV, planType, setPlanType } = useAppStore();
+  const {
+    filters,
+    updateFilters,
+    assignedData,
+    csvData,
+    csvMetadata,
+    uploadCSV,
+    planType,
+    setPlanType,
+  } = useAppStore();
 
   const filterOptions = useMemo(() => {
     // Use assignedData if available, otherwise use csvData
     const dataToUse = assignedData.length > 0 ? assignedData : csvData;
-    
+
     if (!dataToUse || dataToUse.length === 0) {
       return {
-        proyOptions: ["Todos"],
-        moduloOptions: ["Todos"],
-        grupoOptions: ["Todos"],
-        consultorOptions: ["Todos"]
+        proyOptions: ['Todos'],
+        moduloOptions: ['Todos'],
+        grupoOptions: ['Todos'],
+        consultorOptions: ['Todos'],
       };
     }
 
-    const proyOptions = ["Todos", ...Array.from(new Set(dataToUse.map(row => row.PROY).filter(Boolean))).sort()];
-    const moduloOptions = ["Todos", ...Array.from(new Set(dataToUse.map(row => row.Módulo).filter(Boolean))).sort()];
-    
-    const grupoOptions = dataToUse.some(row => row.grupo_dev) 
-      ? ["Todos", ...Array.from(new Set(dataToUse.map(row => row.grupo_dev).filter(Boolean))).sort()]
-      : ["Todos"];
+    const proyOptions = [
+      'Todos',
+      ...Array.from(
+        new Set(dataToUse.map(row => row.PROY).filter(Boolean))
+      ).sort(),
+    ];
+    const moduloOptions = [
+      'Todos',
+      ...Array.from(
+        new Set(dataToUse.map(row => row.Módulo).filter(Boolean))
+      ).sort(),
+    ];
 
-    const consultorOptions = dataToUse.some(row => row['Consultor NTT']) 
-      ? ["Todos", ...Array.from(new Set(dataToUse.map(row => row['Consultor NTT']).filter(Boolean))).sort()]
-      : ["Todos"];
+    const grupoOptions = dataToUse.some(row => row.grupo_dev)
+      ? [
+          'Todos',
+          ...Array.from(
+            new Set(dataToUse.map(row => row.grupo_dev).filter(Boolean))
+          ).sort(),
+        ]
+      : ['Todos'];
+
+    const consultorOptions = dataToUse.some(row => row['Consultor NTT'])
+      ? [
+          'Todos',
+          ...Array.from(
+            new Set(dataToUse.map(row => row['Consultor NTT']).filter(Boolean))
+          ).sort(),
+        ]
+      : ['Todos'];
 
     return { proyOptions, moduloOptions, grupoOptions, consultorOptions };
   }, [assignedData, csvData]);
@@ -90,9 +119,9 @@ export default function Sidebar() {
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -101,7 +130,7 @@ export default function Sidebar() {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFile(e.dataTransfer.files[0]);
     }
@@ -142,8 +171,8 @@ export default function Sidebar() {
               <Link key={tab.href} href={tab.href} legacyBehavior>
                 <a
                   className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors border-b-2 ${
-                    pathname === tab.href 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 border-blue-500' 
+                    pathname === tab.href
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 border-blue-500'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent hover:border-gray-300'
                   }`}
                 >
@@ -186,11 +215,13 @@ export default function Sidebar() {
                 </label>
                 <select
                   value={planType}
-                  onChange={(e) => setPlanType(e.target.value)}
+                  onChange={e => setPlanType(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="Plan de Desarrollo">Plan de Desarrollo</option>
-                  <option value="Plan de Mantenimiento">Plan de Mantenimiento</option>
+                  <option value="Plan de Mantenimiento">
+                    Plan de Mantenimiento
+                  </option>
                   <option value="Plan de Soporte">Plan de Soporte</option>
                 </select>
               </div>
@@ -202,10 +233,12 @@ export default function Sidebar() {
                 </label>
                 <select
                   value={filters.selected_proy}
-                  onChange={(e) => handleFilterChange('selected_proy', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('selected_proy', e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {filterOptions.proyOptions.map((option) => (
+                  {filterOptions.proyOptions.map(option => (
                     <option key={String(option)} value={String(option)}>
                       {String(option)}
                     </option>
@@ -220,10 +253,12 @@ export default function Sidebar() {
                 </label>
                 <select
                   value={filters.selected_modulo}
-                  onChange={(e) => handleFilterChange('selected_modulo', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('selected_modulo', e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {filterOptions.moduloOptions.map((option) => (
+                  {filterOptions.moduloOptions.map(option => (
                     <option key={String(option)} value={String(option)}>
                       {String(option)}
                     </option>
@@ -239,10 +274,12 @@ export default function Sidebar() {
                   </label>
                   <select
                     value={filters.selected_grupo}
-                    onChange={(e) => handleFilterChange('selected_grupo', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('selected_grupo', e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {filterOptions.grupoOptions.map((option) => (
+                    {filterOptions.grupoOptions.map(option => (
                       <option key={String(option)} value={String(option)}>
                         {String(option)}
                       </option>
@@ -259,10 +296,12 @@ export default function Sidebar() {
                   </label>
                   <select
                     value={filters.consultor_ntt}
-                    onChange={(e) => handleFilterChange('consultor_ntt', e.target.value)}
+                    onChange={e =>
+                      handleFilterChange('consultor_ntt', e.target.value)
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {filterOptions.consultorOptions.map((option) => (
+                    {filterOptions.consultorOptions.map(option => (
                       <option key={String(option)} value={String(option)}>
                         {String(option)}
                       </option>
@@ -279,19 +318,27 @@ export default function Sidebar() {
                 <input
                   type="text"
                   value={filters.id_filter}
-                  onChange={(e) => handleFilterChange('id_filter', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('id_filter', e.target.value)
+                  }
                   placeholder="Buscar por ID (coincidencia parcial)..."
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Filter Status Indicator */}
-              {(filters.selected_proy !== "Todos" || filters.selected_modulo !== "Todos" || filters.selected_grupo !== "Todos" || filters.consultor_ntt !== "Todos" || filters.id_filter) && (
+              {(filters.selected_proy !== 'Todos' ||
+                filters.selected_modulo !== 'Todos' ||
+                filters.selected_grupo !== 'Todos' ||
+                filters.consultor_ntt !== 'Todos' ||
+                filters.id_filter) && (
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="text-blue-400 dark:text-blue-300 mr-2">🔍</div>
+                        <div className="text-blue-400 dark:text-blue-300 mr-2">
+                          🔍
+                        </div>
                         <span className="text-xs text-blue-700 dark:text-blue-300">
                           Filtros activos
                         </span>
@@ -299,11 +346,11 @@ export default function Sidebar() {
                       <button
                         onClick={() => {
                           updateFilters({
-                            selected_proy: "Todos",
-                            selected_modulo: "Todos",
-                            selected_grupo: "Todos",
-                            consultor_ntt: "Todos",
-                            id_filter: ""
+                            selected_proy: 'Todos',
+                            selected_modulo: 'Todos',
+                            selected_grupo: 'Todos',
+                            consultor_ntt: 'Todos',
+                            id_filter: '',
                           });
                         }}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline"
@@ -326,19 +373,25 @@ export default function Sidebar() {
                   </span>
                 </div>
                 <div className="text-xs text-green-700 dark:text-green-300">
-                  <span>{formatDate(csvMetadata.uploaded_at)} {formatTime(csvMetadata.uploaded_at)}</span>
+                  <span>
+                    {formatDate(csvMetadata.uploaded_at)}{' '}
+                    {formatTime(csvMetadata.uploaded_at)}
+                  </span>
                   <span className="mx-1">•</span>
-                  <span>Filas: {csvMetadata.row_count} | Tamaño: {(csvMetadata.file_size / 1024 / 1024).toFixed(2)} MB</span>
+                  <span>
+                    Filas: {csvMetadata.row_count} | Tamaño:{' '}
+                    {(csvMetadata.file_size / 1024 / 1024).toFixed(2)} MB
+                  </span>
                 </div>
               </div>
             )}
           </div>
           {/* CSV Upload Area - al final del sidebar */}
           <div className="p-4 pt-0">
-            <div 
+            <div
               className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
-                dragActive 
-                  ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                dragActive
+                  ? 'border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
               }`}
               onDragEnter={handleDrag}
@@ -347,19 +400,30 @@ export default function Sidebar() {
               onDrop={handleDrop}
             >
               <div className="flex flex-col items-center">
-                <Upload className={`h-6 w-6 mb-2 ${
-                  dragActive 
-                    ? 'text-blue-400 dark:text-blue-300' 
-                    : 'text-gray-400 dark:text-gray-500'
-                }`} />
-                <p className={`text-xs ${
-                  dragActive 
-                    ? 'text-blue-600 dark:text-blue-300' 
-                    : 'text-gray-600 dark:text-gray-400'
-                }`}>
-                  {dragActive ? 'Suelta el archivo CSV aquí' : 'Sube tu archivo CSV • Arrastra y suelta aquí, o'}{' '}
+                <Upload
+                  className={`h-6 w-6 mb-2 ${
+                    dragActive
+                      ? 'text-blue-400 dark:text-blue-300'
+                      : 'text-gray-400 dark:text-gray-500'
+                  }`}
+                />
+                <p
+                  className={`text-xs ${
+                    dragActive
+                      ? 'text-blue-600 dark:text-blue-300'
+                      : 'text-gray-600 dark:text-gray-400'
+                  }`}
+                >
+                  {dragActive
+                    ? 'Suelta el archivo CSV aquí'
+                    : 'Sube tu archivo CSV • Arrastra y suelta aquí, o'}{' '}
                   {!dragActive && (
-                    <span className="text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 font-medium cursor-pointer" onClick={() => document.getElementById('sidebar-csv-upload')?.click()}>
+                    <span
+                      className="text-primary-600 dark:text-primary-400 hover:text-primary-500 dark:hover:text-primary-300 font-medium cursor-pointer"
+                      onClick={() =>
+                        document.getElementById('sidebar-csv-upload')?.click()
+                      }
+                    >
                       busca archivos
                     </span>
                   )}
@@ -368,7 +432,7 @@ export default function Sidebar() {
                   id="sidebar-csv-upload"
                   type="file"
                   accept=".csv"
-                  onChange={(e) => {
+                  onChange={e => {
                     if (e.target.files && e.target.files[0]) {
                       handleFile(e.target.files[0]);
                     }
@@ -388,16 +452,23 @@ export default function Sidebar() {
             <div className="p-4 pt-2">
               <button
                 onClick={() => {
-                  const handleExport = (data: Array<Record<string, unknown>>, filename: string) => {
+                  const handleExport = (
+                    data: Array<Record<string, unknown>>,
+                    filename: string
+                  ) => {
                     const csvContent = [
                       // Headers
                       Object.keys(data[0] || {}).join(','),
                       // Data rows
-                      ...data.map(row => 
-                        Object.values(row).map(value => 
-                          typeof value === 'string' && value.includes(',') ? `"${value}"` : value
-                        ).join(',')
-                      )
+                      ...data.map(row =>
+                        Object.values(row)
+                          .map(value =>
+                            typeof value === 'string' && value.includes(',')
+                              ? `"${value}"`
+                              : value
+                          )
+                          .join(',')
+                      ),
                     ].join('\n');
 
                     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -410,7 +481,7 @@ export default function Sidebar() {
                     window.URL.revokeObjectURL(url);
                     document.body.removeChild(a);
                   };
-                  
+
                   handleExport(assignedData, 'datos-asignados.csv');
                 }}
                 className="w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 font-medium"
@@ -427,4 +498,4 @@ export default function Sidebar() {
       )}
     </>
   );
-} 
+}

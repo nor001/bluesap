@@ -25,14 +25,11 @@ export default function RootLayout({
       <body className="bg-gray-50 dark:bg-gray-950">
         <Sidebar />
         <main className="pt-16 min-h-screen">
-          <ThemeProvider
-            defaultTheme="system"
-            enableSystem
-          >
+          <ThemeProvider defaultTheme="system" enableSystem>
             {children}
           </ThemeProvider>
         </main>
       </body>
     </html>
   );
-} 
+}

@@ -12,29 +12,33 @@ function isWorkingDay(date: Date, holidays: Record<string, string>): boolean {
   // 0 = Sunday, 6 = Saturday
   const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
   const isHolidayDate = isHoliday(date, holidays);
-  
+
   return !isWeekend && !isHolidayDate;
 }
 
 function getNextWorkingDay(date: Date, holidays: Record<string, string>): Date {
   const nextDay = new Date(date);
   nextDay.setDate(nextDay.getDate() + 1);
-  
+
   while (!isWorkingDay(nextDay, holidays)) {
     nextDay.setDate(nextDay.getDate() + 1);
   }
-  
+
   return nextDay;
 }
 
-function calculateWorkingDates(baseDate: string, hours: number, holidays: Record<string, string>): [Date | null, Date | null] {
+function calculateWorkingDates(
+  baseDate: string,
+  hours: number,
+  holidays: Record<string, string>
+): [Date | null, Date | null] {
   if (!baseDate || hours <= 0) {
     return [null, null];
   }
 
   try {
     let startDate = new Date(baseDate);
-    
+
     // Adjust start date if it falls on a non-working day
     if (!isWorkingDay(startDate, holidays)) {
       startDate = getNextWorkingDay(startDate, holidays);
@@ -89,21 +93,24 @@ function checkConflict(
   for (const task of existingTasks) {
     const taskStart = task[startDateCol];
     const taskEnd = task[endDateCol];
-    
+
     if (taskStart && taskEnd) {
       const taskStartDate = new Date(taskStart as string);
       const taskEndDate = new Date(taskEnd as string);
-      
+
       if (startNew <= taskEndDate && endNew >= taskStartDate) {
         return true;
       }
     }
   }
-  
+
   return false;
 }
 
-export function calculateAssignments(data: Array<Record<string, unknown>>, planType: string): Array<Record<string, unknown>> {
+export function calculateAssignments(
+  data: Array<Record<string, unknown>>,
+  planType: string
+): Array<Record<string, unknown>> {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return [];
   }
@@ -116,30 +123,36 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
 
   // Ensure required columns exist
   if (!workingData[0][planConfig.resource_col]) {
-    workingData.forEach(row => row[planConfig.resource_col] = null);
+    workingData.forEach(row => (row[planConfig.resource_col] = null));
   }
   if (!workingData[0][planConfig.start_date_col]) {
-    workingData.forEach(row => row[planConfig.start_date_col] = null);
+    workingData.forEach(row => (row[planConfig.start_date_col] = null));
   }
   if (!workingData[0][planConfig.end_date_col]) {
-    workingData.forEach(row => row[planConfig.end_date_col] = null);
+    workingData.forEach(row => (row[planConfig.end_date_col] = null));
   }
 
   // Process already assigned tasks
-  const alreadyAssigned = workingData.filter(row => 
-    row[planConfig.resource_col] && 
-    row[planConfig.resource_col] !== '' && 
-    row[planConfig.resource_col] !== 'None' && 
-    row[planConfig.resource_col] !== 'nan'
+  const alreadyAssigned = workingData.filter(
+    row =>
+      row[planConfig.resource_col] &&
+      row[planConfig.resource_col] !== '' &&
+      row[planConfig.resource_col] !== 'None' &&
+      row[planConfig.resource_col] !== 'nan'
   );
 
   for (const row of alreadyAssigned) {
     if (!row[planConfig.start_date_col] || !row[planConfig.end_date_col]) {
       const hours = (row[planConfig.hours_col] as number) || 8.0;
-      const baseDate = row[planConfig.available_date_col] || row[planConfig.plan_date_col];
-      
+      const baseDate =
+        row[planConfig.available_date_col] || row[planConfig.plan_date_col];
+
       if (baseDate) {
-        const [start, end] = calculateWorkingDates(baseDate as string, hours, holidays);
+        const [start, end] = calculateWorkingDates(
+          baseDate as string,
+          hours,
+          holidays
+        );
         if (start && end) {
           row[planConfig.start_date_col] = start.toISOString();
           row[planConfig.end_date_col] = end.toISOString();
@@ -149,21 +162,27 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
   }
 
   // Process unassigned tasks
-  const unassigned = workingData.filter(row => 
-    !row[planConfig.resource_col] || 
-    row[planConfig.resource_col] === '' || 
-    row[planConfig.resource_col] === 'None' || 
-    row[planConfig.resource_col] === 'nan'
+  const unassigned = workingData.filter(
+    row =>
+      !row[planConfig.resource_col] ||
+      row[planConfig.resource_col] === '' ||
+      row[planConfig.resource_col] === 'None' ||
+      row[planConfig.resource_col] === 'nan'
   );
 
   // Sort by priority (hours descending)
-  unassigned.sort((a, b) => ((b[planConfig.hours_col] as number) || 0) - ((a[planConfig.hours_col] as number) || 0));
+  unassigned.sort(
+    (a, b) =>
+      ((b[planConfig.hours_col] as number) || 0) -
+      ((a[planConfig.hours_col] as number) || 0)
+  );
 
   let dynamicConsultantIndex = 1;
 
   for (const row of unassigned) {
     const hours = (row[planConfig.hours_col] as number) || 8.0;
-    const baseDate = row[planConfig.available_date_col] || row[planConfig.plan_date_col];
+    const baseDate =
+      row[planConfig.available_date_col] || row[planConfig.plan_date_col];
 
     if (!baseDate) {
       continue;
@@ -174,8 +193,8 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
     if (planConfig.use_group_based_assignment && row.grupo_dev) {
       currentResourceConfig = AppConfig.getGroupConfig(row.grupo_dev as string);
     } else {
-      currentResourceConfig = planConfig.resource_title.includes('Developer') 
-        ? AppConfig.getAllDevelopersConfig() 
+      currentResourceConfig = planConfig.resource_title.includes('Developer')
+        ? AppConfig.getAllDevelopersConfig()
         : AppConfig.TESTERS_CONFIG;
     }
 
@@ -186,25 +205,38 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
 
     for (const [resource, config] of Object.entries(currentResourceConfig)) {
       const maxTasks = config.max_tasks || 15;
-      
+
       // Count current tasks for this resource
-      const currentTasks = workingData.filter(row => 
-        row[planConfig.resource_col] === resource && 
-        row[planConfig.resource_col] != null
+      const currentTasks = workingData.filter(
+        row =>
+          row[planConfig.resource_col] === resource &&
+          row[planConfig.resource_col] != null
       );
-      
+
       if (currentTasks.length >= maxTasks) {
         continue;
       }
 
       // Check for conflicts with existing tasks
-      const [startDate, endDate] = calculateWorkingDates(baseDate as string, hours, holidays);
-      
+      const [startDate, endDate] = calculateWorkingDates(
+        baseDate as string,
+        hours,
+        holidays
+      );
+
       if (!startDate || !endDate) {
         continue;
       }
 
-      if (!checkConflict(startDate, endDate, currentTasks, planConfig.start_date_col, planConfig.end_date_col)) {
+      if (
+        !checkConflict(
+          startDate,
+          endDate,
+          currentTasks,
+          planConfig.start_date_col,
+          planConfig.end_date_col
+        )
+      ) {
         bestResource = resource;
         bestStartDate = startDate;
         bestEndDate = endDate;
@@ -215,19 +247,23 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
     // If no resource found, create a dynamic senior consultant
     if (!bestResource) {
       const dynamicConsultantName = `Senior_${dynamicConsultantIndex.toString().padStart(2, '0')}`;
-      
+
       // Generate dynamic consultant config
       const dynamicConfig: ResourceConfig = {
-        level: "SENIOR",
-        max_tasks: 15
+        level: 'SENIOR',
+        max_tasks: 15,
       };
-      
+
       // Add to current resource config
       currentResourceConfig[dynamicConsultantName] = dynamicConfig;
-      
+
       // Calculate dates for the new consultant
-      const [startDate, endDate] = calculateWorkingDates(baseDate as string, hours, holidays);
-      
+      const [startDate, endDate] = calculateWorkingDates(
+        baseDate as string,
+        hours,
+        holidays
+      );
+
       if (startDate && endDate) {
         bestResource = dynamicConsultantName;
         bestStartDate = startDate;
@@ -245,4 +281,4 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
   }
 
   return workingData;
-} 
+}

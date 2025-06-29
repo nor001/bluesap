@@ -7,15 +7,15 @@ export async function POST() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('bluesap-csv-cache');
     }
-    
+
     // Clear fallback data
     clearFallbackData();
-    
+
     return NextResponse.json({ success: true });
   } catch {
-    return NextResponse.json({ 
-      success: false, 
-      error: 'Failed to clear cache' 
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to clear cache',
     });
   }
-} 
+}

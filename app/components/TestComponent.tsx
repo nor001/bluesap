@@ -26,7 +26,9 @@ export function TestComponent() {
 
       // Test 2: Check metadata
       if (csvMetadata) {
-        results.push(`✅ Metadata available: ${csvMetadata.row_count} rows, uploaded ${new Date(csvMetadata.uploaded_at).toLocaleDateString()}`);
+        results.push(
+          `✅ Metadata available: ${csvMetadata.row_count} rows, uploaded ${new Date(csvMetadata.uploaded_at).toLocaleDateString()}`
+        );
       } else {
         results.push('❌ No metadata available');
       }
@@ -34,9 +36,17 @@ export function TestComponent() {
       // Test 3: Check data structure
       if (csvData && csvData.length > 0) {
         const firstRow = csvData[0];
-        const requiredFields = ['proyecto', 'tarea', 'fecha_inicio', 'fecha_fin', 'duracion'];
-        const missingFields = requiredFields.filter(field => !(field in firstRow));
-        
+        const requiredFields = [
+          'proyecto',
+          'tarea',
+          'fecha_inicio',
+          'fecha_fin',
+          'duracion',
+        ];
+        const missingFields = requiredFields.filter(
+          field => !(field in firstRow)
+        );
+
         if (missingFields.length === 0) {
           results.push('✅ Data structure is correct');
         } else {
@@ -65,4 +75,4 @@ export function TestComponent() {
 }
 
 // ✅ RULE PATTERN: Export as memo for performance optimization
-export default TestComponent; 
+export default TestComponent;

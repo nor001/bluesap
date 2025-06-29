@@ -7,7 +7,8 @@ export default function ValidacionESFUPage() {
             🧮 Validación ESFU
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-            Bienvenido al módulo de validación de Especificaciones Funcionales (ESFU)
+            Bienvenido al módulo de validación de Especificaciones Funcionales
+            (ESFU)
           </p>
         </div>
 
@@ -17,9 +18,9 @@ export default function ValidacionESFUPage() {
               📋 ¿Qué es ESFU?
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              La Especificación Funcional (ESFU) es un documento que describe detalladamente 
-              los requerimientos funcionales de un sistema, incluyendo procesos, reglas de negocio 
-              y flujos de trabajo.
+              La Especificación Funcional (ESFU) es un documento que describe
+              detalladamente los requerimientos funcionales de un sistema,
+              incluyendo procesos, reglas de negocio y flujos de trabajo.
             </p>
           </div>
 
@@ -41,11 +42,12 @@ export default function ValidacionESFUPage() {
             🚀 Próximamente
           </h3>
           <p className="text-blue-800 dark:text-blue-200">
-            Este módulo estará disponible próximamente. Aquí podrás validar y revisar 
-            las especificaciones funcionales de tus proyectos SAP de manera eficiente.
+            Este módulo estará disponible próximamente. Aquí podrás validar y
+            revisar las especificaciones funcionales de tus proyectos SAP de
+            manera eficiente.
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}
