@@ -9,39 +9,23 @@ import { CSVUpload } from '@/components/CSVUpload';
 import { TestComponent } from '@/components/TestComponent';
 import { SupabaseStatus } from '@/components/SupabaseStatus';
 import { useAppStore } from '@/lib/store';
-import { calculateAssignments } from '@/lib/assignment-calculator';
 
 export default function Home() {
   const {
     csvData,
     assignedData,
     filters,
-    loading,
-    planType,
-    metrics,
-    timelineData,
-    csvMetadata,
     uploadCSV,
     assignResources,
     updateFilters,
-    setPlanType,
-    setLoading,
-    setMetrics,
-    setTimelineData,
-    clearData,
     fetchCSVMetadata,
-    setCSVMetadata,
-    syncToSupabase,
     loadFallbackData,
-    setCSVData,
-    loadCachedData,
-    saveToCache,
-    clearCache
+    loadCachedData
   } = useAppStore();
 
   // State for UI
   const [currentView, setCurrentView] = useState<'timeline' | 'metrics' | 'upload' | 'test'>('timeline');
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar] = useState(true);
 
   // Load data on component mount
   useEffect(() => {
@@ -67,121 +51,6 @@ export default function Home() {
       assignResources();
     }
   }, [csvData, assignResources]);
-
-  // Update metrics when assigned data changes
-  useEffect(() => {
-    if (assignedData && assignedData.length > 0) {
-      const newMetrics = {
-        total_projects: new Set(assignedData.map((item: Record<string, unknown>) => item.proyecto as string)).size,
-        total_tasks: assignedData.length,
-        assigned_tasks: assignedData.filter((item: Record<string, unknown>) => item.responsable).length,
-        unassigned_tasks: assignedData.filter((item: Record<string, unknown>) => !item.responsable).length
-      };
-      setMetrics(newMetrics);
-    }
-  }, [assignedData, setMetrics]);
-
-  // Handle file upload
-  const handleFileUpload = useCallback(async (file: File) => {
-    try {
-      await uploadCSV(file);
-    } catch (err) {
-      console.error('Upload failed:', err);
-    }
-  }, [uploadCSV]);
-
-  // Handle export
-  const handleExport = useCallback(async (type: string) => {
-    try {
-      const response = await fetch('/api/download-csv');
-      const result = await response.json();
-      
-      if (result.success && result.csvContent) {
-        const blob = new Blob([result.csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `sap-data-${type}-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      }
-    } catch (err) {
-      console.error('Export failed:', err);
-    }
-  }, []);
-
-  // Handle logout
-  const handleLogout = useCallback(async () => {
-    try {
-      await fetch('/api/auth-validate', { method: 'POST' });
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  }, []);
-
-  // Handle sync to Supabase
-  const handleSyncToSupabase = useCallback(async () => {
-    try {
-      const success = await syncToSupabase();
-      if (success) {
-        console.log('Data synced to Supabase successfully');
-      }
-    } catch (err) {
-      console.error('Sync failed:', err);
-    }
-  }, [syncToSupabase]);
-
-  // Handle cache operations
-  const handleCacheOperation = useCallback(async (operation: string) => {
-    try {
-      const response = await fetch('/api/clear-cache', { method: 'POST' });
-      const result = await response.json();
-      
-      if (result.success) {
-        console.log('Cache operation completed');
-      }
-    } catch (err) {
-      console.error('Cache operation failed:', err);
-    }
-  }, []);
-
-  // Calculate business days between dates
-  const calculateBusinessDays = useCallback((startDate: string, endDate: string): number => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    let businessDays = 0;
-    const current = new Date(start);
-    
-    while (current <= end) {
-      const dayOfWeek = current.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        businessDays++;
-      }
-      current.setDate(current.getDate() + 1);
-    }
-    
-    return businessDays;
-  }, []);
-
-  // Process timeline data
-  const processTimelineData = useCallback(() => {
-    if (!assignedData || assignedData.length === 0) return [];
-    
-    return assignedData.map((item: Record<string, unknown>) => {
-      const startDate = item.fecha_inicio as string;
-      const endDate = item.fecha_fin as string;
-      const businessDays = calculateBusinessDays(startDate, endDate);
-      
-      return {
-        ...item,
-        businessDays,
-        start: new Date(startDate),
-        end: new Date(endDate)
-      };
-    }).sort((a, b) => a.start.getTime() - b.start.getTime());
-  }, [assignedData, calculateBusinessDays]);
 
   // Get filtered data
   const getFilteredData = useCallback(() => {

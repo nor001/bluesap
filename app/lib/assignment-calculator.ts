@@ -103,25 +103,6 @@ function checkConflict(
   return false;
 }
 
-// Remove unused function and fix any types
-interface SeniorConsultant {
-  name: string;
-  skills: string[];
-  availability: number;
-}
-
-interface ProjectRequirement {
-  name: string;
-  requiredSkills: string[];
-  priority: number;
-}
-
-// Remove colorIndex variable usage
-const colors = [
-  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-  '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
-];
-
 export function calculateAssignments(data: Array<Record<string, unknown>>, planType: string): Array<Record<string, unknown>> {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return [];

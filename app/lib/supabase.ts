@@ -89,7 +89,7 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
   }
 
   try {
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(CSV_BUCKET_NAME)
       .upload(CSV_FILE_NAME, file, {
         upsert: true,

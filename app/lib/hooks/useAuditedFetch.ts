@@ -57,7 +57,7 @@ export function useAuditedFetch(): UseAuditedFetchReturn {
  * Hook for audited API calls with state management
  */
 export function useAuditedAPI<T = unknown>() {
-  const [data, setData] = useState<T | null>(null);
+  const [data] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const { execute } = useAuditedFetch();

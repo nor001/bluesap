@@ -86,7 +86,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: false,
       error: 'Invalid action'
     }, { status: 400 });
-  } catch (_error) {
+  } catch {
     return NextResponse.json({
       success: false,
       error: 'Failed to process request'

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { TimelineData, PlanConfig } from '@/lib/types';
+import { PlanConfig } from '@/lib/types';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -54,9 +54,8 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     }
     return 10;
   });
-  const [columnWidth, setColumnWidth] = useState(4);
+  const [columnWidth] = useState(4);
   const [isMobile, setIsMobile] = useState(false);
-  const { csvData } = useAppStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -92,11 +91,11 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     if (!data || data.length === 0) return [];
     
     return data
-      .filter((item: any) => {
+      .filter((item: Record<string, unknown>) => {
         if (planConfig.resource_col && item[planConfig.resource_col] !== planConfig.resource_col) return false;
         return true;
       })
-      .map((item: any) => ({
+      .map((item: Record<string, unknown>) => ({
         ...item,
         start: new Date(item[planConfig.start_date_col] as string),
         end: new Date(item[planConfig.end_date_col] as string),

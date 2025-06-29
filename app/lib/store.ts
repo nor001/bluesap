@@ -5,7 +5,6 @@ import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
 import { logError } from './error-handler';
 import { auditedFetch } from './auditedFetch';
 import { calculateAssignments } from './assignment-calculator';
-import { useCallback } from 'react';
 
 interface AppStore extends AppState {
   // Actions
@@ -370,7 +369,7 @@ export const createAppStore = () => create<AppStore>()(
       },
 
       // Rehydration callback
-      onRehydrateStorage: () => (_state: unknown) => {
+      onRehydrateStorage: () => () => {
         // Store rehydrated successfully
       },
     }),
