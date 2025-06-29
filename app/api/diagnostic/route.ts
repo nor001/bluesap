@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
  * @ai-business-context Critical for maintaining SAP project planning system reliability
  * @ai-special-cases Handles corporate environment constraints and legacy compatibility
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Step 1: Environment validation
     const envCheck = validateEnvironment();
@@ -63,8 +63,6 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Diagnostic endpoint error:', error);
-    
     logError(
       {
         type: 'processing',

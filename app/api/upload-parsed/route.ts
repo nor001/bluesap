@@ -1,12 +1,29 @@
 import { logError } from '@/lib/error-handler';
 import { NextRequest, NextResponse } from 'next/server';
 
+interface SAPProjectData {
+  fecha_inicio: string;
+  fecha_fin: string;
+  responsable: string;
+  duracion: number;
+  proyecto?: string;
+  modulo?: string;
+  grupo_dev?: string;
+  [key: string]: unknown;
+}
+
+interface ProcessedSAPProjectData extends SAPProjectData {
+  fecha_inicio: string;
+  fecha_fin: string;
+  duracion: number;
+}
+
 /**
- * @ai-context API endpoint para procesar datos CSV ya parseados
- * @ai-purpose Recibe datos CSV procesados del frontend y los valida/transforma
- * @ai-data-expects JSON con array de objetos de datos de proyectos SAP
- * @ai-business-context Validación y procesamiento de datos de planificación SAP
- * @ai-special-cases Maneja diferentes formatos de datos y validaciones corporativas
+ * @ai-context API endpoint for processing already parsed CSV data
+ * @ai-purpose Receives processed CSV data from frontend and validates/transforms it
+ * @ai-data-expects JSON with array of SAP project data objects
+ * @ai-business-context Validation and processing of SAP planning data
+ * @ai-special-cases Handles different data formats and corporate validations
  */
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate SAP project data structure
-    const validateSAPProjectData = (data: any[]): void => {
+    const validateSAPProjectData = (data: SAPProjectData[]): void => {
       const requiredColumns = ['fecha_inicio', 'fecha_fin', 'responsable', 'duracion'];
       const firstRow = data[0];
       
@@ -47,9 +64,9 @@ export async function POST(request: NextRequest) {
     validateSAPProjectData(data);
 
     // Simple data processing - normalize dates and numbers
-    const processSAPProjectData = (data: any[]): any[] => {
+    const processSAPProjectData = (data: SAPProjectData[]): ProcessedSAPProjectData[] => {
       return data.map(row => {
-        const processedRow = { ...row };
+        const processedRow = { ...row } as ProcessedSAPProjectData;
 
         // Normalize date columns
         const dateColumns = ['fecha_inicio', 'fecha_fin'];
@@ -91,8 +108,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error processing parsed CSV data:', error);
-    
     logError(
       {
         type: 'processing',

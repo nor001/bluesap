@@ -1,5 +1,6 @@
+import { isSupabaseAvailable, supabaseClient } from '@/lib/supabase-client';
+import Image from 'next/image';
 import { useState } from 'react';
-import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
 
 export function SocialLogin() {
   const [error, setError] = useState<string | null>(null);
@@ -65,10 +66,12 @@ export function SocialLogin() {
           </>
         ) : (
           <>
-            <img
+            <Image
               src="https://www.svgrepo.com/show/475656/google-color.svg"
               alt="Google"
-              className="h-5 w-5 mr-2"
+              width={20}
+              height={20}
+              className="mr-2"
             />
             Continuar con Google
           </>

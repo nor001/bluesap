@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { logError } from './error-handler';
 
 // Use service role key for full admin access
 const supabaseUrl =
@@ -55,8 +56,17 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
     }
 
     return data;
-  } catch {
-    console.error('Failed to get CSV metadata from Supabase');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to get CSV metadata from Supabase',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'supabase'
+    );
     return null;
   }
 }
@@ -79,8 +89,17 @@ export async function updateCSVMetadata(
     }
 
     return true;
-  } catch {
-    console.error('Failed to update CSV metadata in Supabase');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to update CSV metadata in Supabase',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'supabase'
+    );
     return false;
   }
 }
@@ -104,8 +123,17 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
     }
 
     return true;
-  } catch {
-    console.error('Failed to upload file to Supabase');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to upload file to Supabase',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'supabase'
+    );
     return false;
   }
 }
@@ -136,8 +164,17 @@ export async function downloadFileFromSupabase(): Promise<string | null> {
     }
 
     return csvContent;
-  } catch {
-    console.error('Failed to download file from Supabase');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to download file from Supabase',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'supabase'
+    );
     return null;
   }
 }

@@ -13,10 +13,10 @@ import {
 } from './types';
 
 /**
- * @ai-context Store principal para gestión de estado de aplicación SAP
- * @ai-purpose Maneja estado global de datos CSV, asignaciones y filtros
- * @ai-business-context Gestión de planificación de recursos ABAP en proyectos SAP
- * @ai-special-cases Persistencia local, fallback storage, y sincronización con Supabase
+ * @ai-context Main store for SAP application state management
+ * @ai-purpose Manages global state of CSV data, assignments and filters
+ * @ai-business-context ABAP resource planning management in SAP projects
+ * @ai-special-cases Local persistence, fallback storage, and Supabase synchronization
  */
 interface AppStore extends AppState {
   // Actions
@@ -183,16 +183,9 @@ export const createAppStore = () =>
         },
 
         assignResources: async () => {
-          const { csvData, planType, assignedData } = get();
-
-          console.log('🔄 assignResources called', {
-            csvDataLength: csvData?.length || 0,
-            planType,
-            currentAssignedLength: assignedData?.length || 0,
-          });
+          const { csvData, planType, assignedData: _assignedData } = get();
 
           if (!csvData || csvData.length === 0) {
-            console.log('❌ No CSV data available for assignment');
             return;
           }
 
@@ -201,7 +194,6 @@ export const createAppStore = () =>
           const DEBOUNCE_DELAY = 1000; // 1 second
 
           if (now - lastAssignCall < DEBOUNCE_DELAY) {
-            console.log('⏳ Debounced assignment call');
             return;
           }
 
@@ -210,27 +202,14 @@ export const createAppStore = () =>
           set({ loading: true });
 
           try {
-            console.log('🔄 Starting assignment calculation...');
             // Use local calculation instead of API call
             const newAssignedData = calculateAssignments(csvData, planType);
-
-            console.log('✅ Assignment calculation completed', {
-              newAssignedDataLength: newAssignedData?.length || 0,
-              sampleAssigned: newAssignedData?.[0],
-            });
 
             set({
               assignedData: newAssignedData,
               loading: false,
             });
-
-            // Verify the state was updated
-            const updatedState = get();
-            console.log('✅ State updated', {
-              newAssignedLength: updatedState.assignedData?.length || 0,
-            });
           } catch (error) {
-            console.error('❌ Assignment failed:', error);
             set({ loading: false });
             logError(
               {
@@ -475,7 +454,9 @@ export const createAppStore = () =>
       {
         name: 'bluesap-store',
         partialize: state => ({
+          csvData: state.csvData,
           filters: state.filters,
+          loading: state.loading,
           planType: state.planType,
           metrics: state.metrics,
           timelineData: state.timelineData,

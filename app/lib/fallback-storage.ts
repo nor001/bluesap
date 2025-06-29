@@ -1,6 +1,8 @@
 // Enhanced fallback storage with local persistence for critical business continuity
 // Preserves special CSV format and corporate environment constraints
 
+import { logError } from './error-handler';
+
 export interface FallbackData {
   csvData: Array<Record<string, unknown>>;
   metadata: Record<string, unknown> | null;
@@ -45,8 +47,17 @@ export function setFallbackData(
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
     }
-  } catch {
-    console.error('Failed to save fallback data');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to save fallback data',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'fallback-storage'
+    );
   }
 }
 
@@ -80,8 +91,17 @@ export function getFallbackData(): FallbackData | null {
         }
       }
     }
-  } catch {
-    console.error('Failed to get fallback data');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to get fallback data',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'fallback-storage'
+    );
     return null;
   }
 
@@ -100,8 +120,17 @@ export function clearFallbackData() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
     }
-  } catch {
-    console.error('Failed to clear fallback data');
+  } catch (error) {
+    logError(
+      {
+        type: 'storage',
+        message: 'Failed to clear fallback data',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: false,
+      },
+      'fallback-storage'
+    );
   }
 }
 

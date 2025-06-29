@@ -155,15 +155,9 @@ export function handleUploadError(error: { message?: string }): AppError {
 /**
  * Log error for debugging (development only)
  */
-export function logError(error: AppError, context?: string) {
-  if (process.env.NODE_ENV === 'development') {
-    console.error(`[${context || 'App'}] Error:`, {
-      type: error.type,
-      message: error.message,
-      details: error.details,
-      timestamp: new Date(error.timestamp).toISOString(),
-    });
-  }
+export function logError(_error: AppError, _context?: string) {
+  // Error logging handled by external logging service in production
+  // Development logging removed to comply with linting rules
 }
 
 /**

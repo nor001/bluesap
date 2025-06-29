@@ -1,15 +1,16 @@
 'use client';
 
+import { logError } from '@/lib/error-handler';
+import { useAppStore } from '@/lib/store';
+import { isSupabaseAvailable, supabaseClient } from '@/lib/supabase-client';
+import { FilterState } from '@/lib/types';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { Clock, Download, FileText, Filter, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { useAppStore } from '@/lib/store';
-import { FilterState } from '@/lib/types';
-import { Filter, Clock, Upload, FileText, Download } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
-import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 const tabs = [
   { href: '/', label: 'Inicio', icon: '🏠' },
@@ -89,8 +90,17 @@ export default function Sidebar() {
     if (isSupabaseAvailable()) {
       try {
         await supabaseClient!.auth.signOut();
-      } catch {
-        console.error('Failed to sync to Supabase');
+      } catch (error) {
+        logError(
+          {
+            type: 'auth',
+            message: 'Failed to sign out from Supabase',
+            details: error,
+            timestamp: Date.now(),
+            userFriendly: true,
+          },
+          'sidebar'
+        );
       }
     }
   };
@@ -149,8 +159,17 @@ export default function Sidebar() {
       }
 
       await uploadCSV(file);
-    } catch {
-      console.error('Failed to sync to Supabase');
+    } catch (error) {
+      logError(
+        {
+          type: 'processing',
+          message: 'Failed to upload CSV file',
+          details: error,
+          timestamp: Date.now(),
+          userFriendly: true,
+        },
+        'sidebar'
+      );
     }
   };
 

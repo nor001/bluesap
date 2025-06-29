@@ -2,14 +2,14 @@
 
 import { PlanConfig } from '@/lib/types';
 import {
-    BarElement,
-    CategoryScale,
-    Chart as ChartJS,
-    Legend,
-    LinearScale,
-    TimeScale,
-    Title,
-    Tooltip,
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
+  TimeScale,
+  Title,
+  Tooltip,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { useEffect, useMemo, useState } from 'react';
@@ -35,15 +35,15 @@ interface TimelineProps {
 }
 
 /**
- * @ai-context Componente principal para visualización de timeline de proyectos SAP
- * @ai-purpose Muestra tareas asignadas en formato Gantt con paginación inteligente
- * @ai-data-expects Array de objetos con fechas de inicio/fin y recursos asignados
- * @ai-performance-notes Maneja datasets grandes con paginación y memoización
- * @ai-business-context Visualización de planificación de recursos ABAP en proyectos SAP
- * @ai-special-cases Soporta diferentes formatos de fecha y agrupación por módulos
- * @ai-cognitive-load medium - Componente complejo con múltiples estados
- * @ai-focus-state clear - Lógica de paginación y filtrado bien definida
- * @ai-session-type standard - Operación rutinaria de visualización
+ * @ai-context Main component for SAP project timeline visualization
+ * @ai-purpose Displays assigned tasks in Gantt format with intelligent pagination
+ * @ai-data-expects Array of objects with start/end dates and assigned resources
+ * @ai-performance-notes Handles large datasets with pagination and memoization
+ * @ai-business-context ABAP resource planning visualization in SAP projects
+ * @ai-special-cases Supports different date formats and module grouping
+ * @ai-cognitive-load medium - Complex component with multiple states
+ * @ai-focus-state clear - Well-defined pagination and filtering logic
+ * @ai-session-type standard - Routine visualization operation
  */
 export function Timeline({ data, planConfig }: TimelineProps) {
   const [isClient, setIsClient] = useState(false);
@@ -107,7 +107,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       // Step 1: Data validation check
-      const dataValidation = {
+      const _dataValidation = {
         hasData: !!data,
         dataLength: data?.length || 0,
         hasPlanConfig: !!planConfig,
@@ -120,7 +120,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       };
       
       // Step 2: State consistency check
-      const stateValidation = {
+      const _stateValidation = {
         viewMode,
         currentPage,
         tasksPerPage,
@@ -129,7 +129,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       };
       
       // Step 3: Performance metrics
-      const performanceMetrics = {
+      const _performanceMetrics = {
         timelineDataLength: timelineData?.length || 0,
         paginationInfo: {
           startIndex: currentPage * tasksPerPage,
@@ -138,19 +138,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
         }
       };
       
-      console.log('🔍 Timeline Debug - Systematic Analysis:', {
-        dataValidation,
-        stateValidation,
-        performanceMetrics,
-        sampleData: data?.[0],
-        sampleTimeline: timelineData?.[0],
-        planConfigCols: {
-          start_date_col: planConfig.start_date_col,
-          end_date_col: planConfig.end_date_col,
-          resource_col: planConfig.resource_col,
-          hours_col: planConfig.hours_col
-        }
-      });
+      // Debug information removed for production
     }
   }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth, timelineData, isClient]);
 

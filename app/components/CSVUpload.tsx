@@ -4,13 +4,24 @@ import { useAppStore } from '@/lib/store';
 import Papa from 'papaparse';
 import React, { useCallback, useState } from 'react';
 
+interface SAPProjectData {
+  fecha_inicio: string;
+  fecha_fin: string;
+  responsable: string;
+  duracion: number;
+  proyecto?: string;
+  modulo?: string;
+  grupo_dev?: string;
+  [key: string]: unknown;
+}
+
 /**
- * @ai-context Componente para carga y procesamiento de archivos CSV de proyectos SAP
- * @ai-purpose Permite subir archivos CSV con datos de proyectos y recursos ABAP
- * @ai-data-expects Archivos CSV con columnas de fechas, recursos, horas y módulos
- * @ai-business-context Gestión de planificación de recursos en proyectos SAP
- * @ai-special-cases Maneja diferentes formatos de CSV y validaciones corporativas
- * @ai-error-handling Validación de archivos, formato y datos antes del procesamiento
+ * @ai-context Component for uploading and processing SAP project CSV files
+ * @ai-purpose Allows uploading CSV files with project data and ABAP resources
+ * @ai-data-expects CSV files with date columns, resources, hours and modules
+ * @ai-business-context Resource planning management in SAP projects
+ * @ai-special-cases Handles different CSV formats and corporate validations
+ * @ai-error-handling File, format and data validation before processing
  */
 export function CSVUpload() {
   const { uploadParsedCSVData, csvData } = useAppStore();
@@ -19,10 +30,10 @@ export function CSVUpload() {
   const [errorMessage, setErrorMessage] = useState('');
 
   /**
-   * @ai-function Valida y procesa archivo CSV para proyectos SAP
-   * @ai-params file - Archivo CSV seleccionado por el usuario
-   * @ai-returns Promise<void> - Resultado del procesamiento
-   * @ai-business-rules Valida formato, tamaño y estructura de datos SAP
+   * @ai-function Validates and processes CSV file for SAP projects
+   * @ai-params file - CSV file selected by user
+   * @ai-returns Promise<void> - Processing result
+   * @ai-business-rules Validates format, size and SAP data structure
    */
   const handleCSVFileUpload = useCallback(async (file: File) => {
     setIsUploading(true);
@@ -47,7 +58,7 @@ export function CSVUpload() {
       validateSAPCSVFile(file);
 
       // Parse CSV with Papa Parse for SAP project data
-      const parseSAPCSVData = (file: File): Promise<any[]> => {
+      const parseSAPCSVData = (file: File): Promise<SAPProjectData[]> => {
         return new Promise((resolve, reject) => {
           Papa.parse(file, {
             header: true,
@@ -57,7 +68,7 @@ export function CSVUpload() {
                 reject(new Error(`Error al procesar CSV: ${results.errors[0].message}`));
                 return;
               }
-              resolve(results.data);
+              resolve(results.data as SAPProjectData[]);
             },
             error: (error) => {
               reject(new Error(`Error de parsing: ${error.message}`));
@@ -69,7 +80,7 @@ export function CSVUpload() {
       const parsedCSVData = await parseSAPCSVData(file);
       
       // Validate SAP project data structure
-      const validateSAPProjectData = (data: any[]): void => {
+      const validateSAPProjectData = (data: SAPProjectData[]): void => {
         if (data.length === 0) {
           throw new Error('El archivo CSV está vacío o no contiene datos válidos.');
         }
@@ -90,7 +101,6 @@ export function CSVUpload() {
       setUploadStatus('success');
       
     } catch (error) {
-      console.error('Error processing SAP CSV file:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Error desconocido');
       setUploadStatus('error');
     } finally {
@@ -99,8 +109,8 @@ export function CSVUpload() {
   }, [uploadParsedCSVData]);
 
   /**
-   * @ai-function Maneja el evento de selección de archivo
-   * @ai-params event - Evento de cambio del input file
+   * @ai-function Handles file selection event
+   * @ai-params event - File input change event
    */
   const handleFileSelection = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -110,8 +120,8 @@ export function CSVUpload() {
   }, [handleCSVFileUpload]);
 
   /**
-   * @ai-function Maneja el drag and drop de archivos CSV
-   * @ai-params event - Evento de drop
+   * @ai-function Handles CSV file drag and drop
+   * @ai-params event - Drop event
    */
   const handleFileDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();

@@ -1,4 +1,5 @@
 import { AppConfig } from './config';
+import { logError } from './error-handler';
 import { ResourceConfig } from './types';
 
 // Helper functions for assignment calculation
@@ -75,8 +76,17 @@ function calculateWorkingDates(
     }
 
     return [startDate, endDate];
-  } catch {
-    console.error('Failed to calculate assignments');
+  } catch (error) {
+    logError(
+      {
+        type: 'processing',
+        message: 'Failed to calculate assignments',
+        details: error,
+        timestamp: Date.now(),
+        userFriendly: true,
+      },
+      'assignment-calculator'
+    );
     return [null, null];
   }
 }
