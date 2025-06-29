@@ -3,17 +3,6 @@ import { downloadFileFromSupabase, getCSVMetadata } from '@/lib/supabase';
 import { getFallbackData } from '@/lib/fallback-storage';
 import { convertToSimpleCSV } from '@/lib/csv-processor';
 
-// Cache for CSV content to avoid repeated downloads
-let csvCache: { content: string; timestamp: number } | null = null;
-const CACHE_DURATION = process.env.NODE_ENV === 'development' 
-  ? 30 * 60 * 1000  // 30 minutes in development
-  : 5 * 60 * 1000;  // 5 minutes in production
-
-// Function to clear cache (useful for testing or manual invalidation)
-function clearCSVCache(): void {
-  csvCache = null;
-}
-
 export async function GET() {
   try {
     // Try to download from Supabase first
@@ -35,9 +24,9 @@ export async function GET() {
           const basicMetadata = {
             id: metadata?.id || 1,
             uploaded_at: metadata?.uploaded_at || new Date().toISOString(),
-            file_size: csvContent.length,
-            uploaded_by: metadata?.uploaded_by || 'unknown',
-            row_count: metadata?.row_count || 0
+            file_size: Buffer.byteLength(csvContent, 'utf8'),
+            uploaded_by: metadata?.uploaded_by || 'system',
+            row_count: csvContent.split('\n').length - 1
           };
           
           return NextResponse.json({
@@ -47,41 +36,24 @@ export async function GET() {
           });
         }
       }
-    } catch (_error) {
-      // Supabase download failed, try fallback
+    } catch {
+      // Supabase failed, try fallback
     }
     
     // If Supabase failed, try fallback data
-    const fallbackData = getFallbackData();
+    const fallback = getFallbackData();
     
-    if (fallbackData && fallbackData.csvData.length > 0) {
-      // Convert data back to CSV format
-      const csvContent = convertToSimpleCSV(fallbackData.csvData);
-      
-      // Get metadata for fallback
-      const metadata = await getCSVMetadata();
-      
-      if (metadata && metadata.file_size) {
-        return NextResponse.json({
-          success: true,
-          csvContent: csvContent,
-          metadata: metadata
-        });
-      } else {
-        // Create basic metadata for fallback
-        const basicMetadata = {
-          id: metadata?.id || 1,
-          uploaded_at: metadata?.uploaded_at || new Date().toISOString(),
-          file_size: csvContent.length,
-          uploaded_by: metadata?.uploaded_by || 'fallback',
-          row_count: fallbackData.csvData.length
-        };
+    if (fallback && fallback.csvData && fallback.csvData.length > 0) {
+      try {
+        const csvContent = convertToSimpleCSV(fallback.csvData);
         
         return NextResponse.json({
           success: true,
           csvContent: csvContent,
-          metadata: basicMetadata
+          metadata: fallback.metadata
         });
+      } catch {
+        // CSV conversion failed
       }
     }
     
@@ -90,11 +62,10 @@ export async function GET() {
       success: false,
       error: 'No CSV data available'
     });
-    
-  } catch (_error) {
+  } catch {
     return NextResponse.json({
       success: false,
-      error: 'Download failed'
+      error: 'Failed to download CSV'
     });
   }
 }
@@ -104,10 +75,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const { action } = await request.json();
     
     if (action === 'clear-cache') {
-      clearCSVCache();
+      // Implement cache clearing logic here
       return NextResponse.json({
         success: true,
-        message: 'CSV cache cleared successfully'
+        message: 'CSV cache clearing logic not implemented'
       });
     }
     

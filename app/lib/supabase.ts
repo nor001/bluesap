@@ -54,7 +54,8 @@ export async function getCSVMetadata(): Promise<CSVMetadata | null> {
     }
 
     return data;
-  } catch (_error) {
+  } catch {
+    console.error('Failed to get CSV metadata from Supabase');
     return null;
   }
 }
@@ -75,7 +76,8 @@ export async function updateCSVMetadata(metadata: CSVMetadata): Promise<boolean>
     }
 
     return true;
-  } catch (_error) {
+  } catch {
+    console.error('Failed to update CSV metadata in Supabase');
     return false;
   }
 }
@@ -99,7 +101,8 @@ export async function uploadFileToSupabase(file: File): Promise<boolean> {
     }
 
     return true;
-  } catch (_error) {
+  } catch {
+    console.error('Failed to upload file to Supabase');
     return false;
   }
 }
@@ -130,7 +133,8 @@ export async function downloadFileFromSupabase(): Promise<string | null> {
     }
     
     return csvContent;
-  } catch (_error) {
+  } catch {
+    console.error('Failed to download file from Supabase');
     return null;
   }
 } 

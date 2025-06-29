@@ -58,7 +58,11 @@ export default function Sidebar() {
 
   const handleLogout = async () => {
     if (isSupabaseAvailable()) {
-      await supabaseClient!.auth.signOut();
+      try {
+        await supabaseClient!.auth.signOut();
+      } catch {
+        console.error('Failed to sync to Supabase');
+      }
     }
   };
 
@@ -116,8 +120,8 @@ export default function Sidebar() {
       }
 
       await uploadCSV(file);
-    } catch (_err) {
-      // Upload failed silently
+    } catch {
+      console.error('Failed to sync to Supabase');
     }
   };
 

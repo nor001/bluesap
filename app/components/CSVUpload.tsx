@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, Info } from 'lucide-react';
 import { useAppStore } from '@/lib/store';
 
 export function CSVUpload() {
   const [error, setError] = useState<string | null>(null);
   const [metadataFetched, setMetadataFetched] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { uploadCSV, csvMetadata, fetchCSVMetadata } = useAppStore();
 
   // Fetch CSV metadata on component mount (only once)
@@ -15,26 +14,16 @@ export function CSVUpload() {
     if (!metadataFetched) {
       setMetadataFetched(true);
       // Always fetch fresh metadata from database, not from cache
-      fetchCSVMetadata().catch((_error) => {
+      fetchCSVMetadata().catch(() => {
         // Silently fail - metadata is optional
       });
     }
   }, [fetchCSVMetadata, metadataFetched]);
 
-  const handleFile = async (file: File) => {
+  const handleFileUpload = async (file: File) => {
     setError(null);
-
+    
     try {
-      // Validate file type
-      if (!file.name.toLowerCase().endsWith('.csv')) {
-        throw new Error('Please upload a CSV file');
-      }
-
-      // Validate file size (50MB limit)
-      if (file.size > 50 * 1024 * 1024) {
-        throw new Error('File size must be less than 50MB');
-      }
-
       await uploadCSV(file);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed');
@@ -42,38 +31,63 @@ export function CSVUpload() {
   };
 
   return (
-    <div className="w-full">
-      {/* Info about CSV format - REMOVIDO */}
+    <div className="w-full max-w-md mx-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="text-center">
+          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/20 mb-4">
+            <Info className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Subir archivo CSV
+          </h3>
+          
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Selecciona un archivo CSV con datos de proyectos SAP
+          </p>
 
-      {/* Supabase Connection Info */}
-      {!csvMetadata && (
-        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-          <div className="flex items-start">
-            <Info className="h-5 w-5 text-yellow-400 dark:text-yellow-300 mr-2 mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-yellow-700 dark:text-yellow-300">
-              <p className="font-medium mb-1">⚠️ Conexión a Supabase</p>
-              <p className="mb-2">No se pudo conectar a Supabase. Puedes subir archivos CSV para procesamiento local.</p>
-              <div className="text-xs space-y-1">
-                <p><strong>Para habilitar Supabase:</strong></p>
-                <ol className="list-decimal list-inside space-y-1 ml-2">
-                  <li>Copia <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">env.example</code> como <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env.local</code></li>
-                  <li>Configura tus credenciales de Supabase en <code className="bg-yellow-100 dark:bg-yellow-800 px-1 rounded">.env.local</code></li>
-                  <li>Reinicia el servidor de desarrollo</li>
-                </ol>
-              </div>
+          <div className="space-y-4">
+            {/* File Upload Input */}
+            <div className="flex justify-center">
+              <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
+                Seleccionar archivo
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
             </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="flex items-center p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <AlertCircle className="h-4 w-4 text-red-400 mr-2" />
+                <span className="text-sm text-red-700 dark:text-red-300">
+                  {error}
+                </span>
+              </div>
+            )}
+
+            {/* Metadata Display */}
+            {csvMetadata && (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md">
+                <div className="text-sm text-green-700 dark:text-green-300">
+                  <p className="font-medium">Última actualización:</p>
+                  <p>{new Date(csvMetadata.uploaded_at).toLocaleString()}</p>
+                  <p>Filas: {csvMetadata.row_count}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* CSV Upload Area - Eliminado, ahora solo en el sidebar */}
-
-      {error && (
-        <div className="mt-4 flex items-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
-          <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mr-2" />
-          <span className="text-sm text-red-700 dark:text-red-300">{error}</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 } 

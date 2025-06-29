@@ -14,7 +14,7 @@ export async function GET() {
           metadata: metadata
         });
       }
-    } catch (_error) {
+    } catch {
       // Supabase failed, try fallback
     }
     
@@ -33,21 +33,10 @@ export async function GET() {
       success: false,
       error: 'No metadata available'
     });
-    
-  } catch (_error) {
-    // If error occurred, try fallback
-    const fallback = getFallbackData();
-    
-    if (fallback && fallback.metadata) {
-      return NextResponse.json({
-        success: true,
-        metadata: fallback.metadata
-      });
-    }
-    
+  } catch {
     return NextResponse.json({
       success: false,
-      error: 'Failed to retrieve metadata'
+      error: 'Failed to get metadata'
     });
   }
 } 

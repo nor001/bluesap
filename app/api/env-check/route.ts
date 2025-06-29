@@ -25,37 +25,40 @@ export async function GET() {
       const { data, error } = await supabase
         .from('csv_metadata')
         .select('*')
-        .limit(5);
-
+        .limit(1);
+      
       if (error) {
         return NextResponse.json({
           success: false,
-          error: 'Failed to connect to Supabase',
-          details: error
+          error: 'Database connection failed',
+          details: {
+            error: error.message,
+            code: error.code
+          }
         });
       }
-
+      
       return NextResponse.json({
         success: true,
-        message: 'Supabase connection successful',
-        data: data,
-        tableStructure: {
-          tableName: 'csv_metadata',
-          recordCount: data?.length || 0
+        message: 'Supabase configured and connected',
+        details: {
+          hasData: data && data.length > 0,
+          tableExists: true
         }
       });
-    } catch (_error) {
+    } catch {
       return NextResponse.json({
         success: false,
-        error: 'Supabase query failed',
-        details: 'Query execution error'
+        error: 'Database connection failed',
+        details: {
+          error: 'Connection timeout or network error'
+        }
       });
     }
-  } catch (_error) {
+  } catch {
     return NextResponse.json({
       success: false,
-      error: 'Environment check failed',
-      details: 'Environment validation error'
+      error: 'Environment check failed'
     });
   }
 } 

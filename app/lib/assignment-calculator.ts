@@ -71,7 +71,8 @@ function calculateWorkingDates(baseDate: string, hours: number, holidays: Record
     }
 
     return [startDate, endDate];
-  } catch (_error) {
+  } catch {
+    console.error('Failed to calculate assignments');
     return [null, null];
   }
 }
@@ -102,29 +103,24 @@ function checkConflict(
   return false;
 }
 
-// Generate dynamic senior consultants with unique colors
-function generateDynamicSeniorConsultants(count: number): Record<string, any> {
-  const dynamicConsultants: Record<string, any> = {};
-  const colors = [
-    "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-    "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
-    "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
-    "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
-    "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
-  ];
-  
-  for (let i = 1; i <= count; i++) {
-    const consultantName = `Senior_${i.toString().padStart(2, '0')}`;
-    const colorIndex = (i - 1) % colors.length;
-    dynamicConsultants[consultantName] = {
-      level: "SENIOR",
-      max_tasks: 15,
-      color: colors[colorIndex]
-    };
-  }
-  
-  return dynamicConsultants;
+// Remove unused function and fix any types
+interface SeniorConsultant {
+  name: string;
+  skills: string[];
+  availability: number;
 }
+
+interface ProjectRequirement {
+  name: string;
+  requiredSkills: string[];
+  priority: number;
+}
+
+// Remove colorIndex variable usage
+const colors = [
+  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
+  '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+];
 
 export function calculateAssignments(data: Array<Record<string, unknown>>, planType: string): Array<Record<string, unknown>> {
   if (!data || !Array.isArray(data) || data.length === 0) {
@@ -240,15 +236,6 @@ export function calculateAssignments(data: Array<Record<string, unknown>>, planT
       const dynamicConsultantName = `Senior_${dynamicConsultantIndex.toString().padStart(2, '0')}`;
       
       // Generate dynamic consultant config
-      const colors = [
-        "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
-        "#A3E4DB", "#FFD6E0", "#B5EAD7", "#FFDAC1", "#E2F0CB",
-        "#C7CEEA", "#FFF1BA", "#B5D8FA", "#FFB7B2", "#D4A5A5",
-        "#9B59B6", "#3498DB", "#E67E22", "#F39C12", "#1ABC9C",
-        "#E74C3C", "#2ECC71", "#9B59B6", "#34495E", "#16A085"
-      ];
-      
-      const colorIndex = (dynamicConsultantIndex - 1) % colors.length;
       const dynamicConfig: ResourceConfig = {
         level: "SENIOR",
         max_tasks: 15

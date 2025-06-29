@@ -12,7 +12,7 @@ export async function POST() {
     clearFallbackData();
     
     return NextResponse.json({ success: true });
-  } catch (_error) {
+  } catch {
     return NextResponse.json({ 
       success: false, 
       error: 'Failed to clear cache' 

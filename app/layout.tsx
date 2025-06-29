@@ -26,10 +26,8 @@ export default function RootLayout({
         <Sidebar />
         <main className="pt-16 min-h-screen">
           <ThemeProvider
-            attribute="class"
             defaultTheme="system"
             enableSystem
-            disableTransitionOnChange
           >
             {children}
           </ThemeProvider>

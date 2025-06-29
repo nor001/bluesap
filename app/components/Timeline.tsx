@@ -1,7 +1,6 @@
 'use client';
 
-import React from "react";
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { TimelineData, PlanConfig } from '@/lib/types';
 import {
   Chart as ChartJS,
@@ -14,6 +13,7 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
+import { useAppStore } from '@/lib/store';
 
 // Register Chart.js components
 ChartJS.register(
@@ -56,6 +56,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
   });
   const [columnWidth, setColumnWidth] = useState(4);
   const [isMobile, setIsMobile] = useState(false);
+  const { csvData } = useAppStore();
 
   useEffect(() => {
     setIsClient(true);
@@ -86,30 +87,26 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     });
   }, [data, planConfig, viewMode, currentPage, tasksPerPage, columnWidth]);
 
-  // Simple data processing without useMemo
-  const timelineData: TimelineData[] = [];
-  
-  if (data && data.length > 0) {
-    for (const row of data) {
-      const startDate = row[planConfig.start_date_col];
-      const endDate = row[planConfig.end_date_col];
-      const resource = row[planConfig.resource_col];
-      
-      if (startDate && endDate && resource) {
-        const start = new Date(startDate as string);
-        const end = new Date(endDate as string);
-        
-        timelineData.push({
-          Task: (row.ID as string) || `Task_${timelineData.length}`,
-          Start: start.toISOString(),
-          Finish: end.toISOString(),
-          Resource: resource as string,
-          Hours: Number(row[planConfig.hours_col]) || 8.0,
-          dev_group: String(row.grupo_dev || 'N/A'),
-        });
-      }
-    }
-  }
+  // Memoize timelineData to prevent unnecessary re-renders
+  const timelineData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    return data
+      .filter((item: any) => {
+        if (planConfig.resource_col && item[planConfig.resource_col] !== planConfig.resource_col) return false;
+        return true;
+      })
+      .map((item: any) => ({
+        ...item,
+        start: new Date(item[planConfig.start_date_col] as string),
+        end: new Date(item[planConfig.end_date_col] as string),
+        Task: item.ID || `Task_${data.indexOf(item)}`,
+        Resource: item[planConfig.resource_col] as string,
+        Hours: Number(item[planConfig.hours_col]) || 8.0,
+        dev_group: String(item.grupo_dev || 'N/A'),
+      }))
+      .sort((a, b) => a.start.getTime() - b.start.getTime());
+  }, [data, planConfig]);
 
   // Debug timeline data
   useEffect(() => {
@@ -135,8 +132,8 @@ export function Timeline({ data, planConfig }: TimelineProps) {
   // Prepare Gantt data - Fixed format with limited tasks for better readability
   // Sort timeline data by start date for chronological order
   const sortedTimelineData = [...timelineData].sort((a, b) => {
-    const startA = new Date(a.Start);
-    const startB = new Date(b.Start);
+    const startA = new Date(a.start);
+    const startB = new Date(b.start);
     return startA.getTime() - startB.getTime();
   });
   
@@ -207,10 +204,10 @@ export function Timeline({ data, planConfig }: TimelineProps) {
 
   // Gantt view component
   const GanttView = () => {
-    if (timelineData.length > 0) {
+    if (limitedTimelineData.length > 0) {
       // Full timeline Gantt - Microsoft Project style
-      const earliestDate = new Date(Math.min(...limitedTimelineData.map(item => new Date(item.Start).getTime())));
-      const latestDate = new Date(Math.max(...limitedTimelineData.map(item => new Date(item.Finish).getTime())));
+      const earliestDate = new Date(Math.min(...limitedTimelineData.map(item => new Date(item.start).getTime())));
+      const latestDate = new Date(Math.max(...limitedTimelineData.map(item => new Date(item.end).getTime())));
       const totalDays = Math.ceil((latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24));
       
       // Generar todos los días (incluyendo fines de semana) para el encabezado
@@ -253,6 +250,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               <p>Showing {visibleDateHeaders.length} days from {earliestDate.toLocaleDateString()} to {latestDate.toLocaleDateString()}</p>
               <p>Column width: {effectiveColumnWidth * 4}px (calculated: {effectiveColumnWidth}px base)</p>
               <p>Total timeline span: {totalDays} days</p>
+              <p>Showing tasks {startIndex + 1}-{Math.min(endIndex, timelineData.length)} of {timelineData.length}</p>
               {isMobile && (
                 <p className="text-blue-600 dark:text-blue-400 font-medium">
                   📱 Mobile view: Showing first 14 days for better readability
@@ -308,9 +306,9 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               </div>
 
               {/* Task Rows */}
-              {timelineData.map((item, index) => {
-                const taskStart = new Date(item.Start);
-                const taskEnd = new Date(item.Finish);
+              {limitedTimelineData.map((item, index) => {
+                const taskStart = new Date(item.start);
+                const taskEnd = new Date(item.end);
                 // Calcular días hábiles entre start y end
                 const businessDays: number[] = [];
                 for (let i = 0; i < dateHeaders.length; i++) {
@@ -363,6 +361,32 @@ export function Timeline({ data, planConfig }: TimelineProps) {
               })}
             </div>
           </div>
+          
+          {/* Pagination Controls */}
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {startIndex + 1}-{Math.min(endIndex, timelineData.length)} of {timelineData.length} tasks
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                disabled={currentPage === 0}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Page {currentPage + 1} of {Math.ceil(timelineData.length / tasksPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(Math.min(Math.ceil(timelineData.length / tasksPerPage) - 1, currentPage + 1))}
+                disabled={currentPage >= Math.ceil(timelineData.length / tasksPerPage) - 1}
+                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       );
     }
@@ -378,3 +402,5 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     </div>
   );
 }
+
+export default Timeline;

@@ -50,8 +50,8 @@ export function ThemeProvider({
       setTheme(theme);
       try {
         localStorage.setItem('theme', theme);
-      } catch (_error) {
-        // Ignore
+      } catch {
+        // Failed to save theme preference
       }
     },
   };

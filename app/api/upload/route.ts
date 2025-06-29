@@ -30,7 +30,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     if (!file.name.toLowerCase().endsWith('.csv')) {
       return NextResponse.json({ 
         success: false, 
-        error: 'File must be a CSV' 
+        error: 'Invalid file type. Please upload a CSV file.' 
       });
     }
 
@@ -38,22 +38,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     if (file.size > 50 * 1024 * 1024) {
       return NextResponse.json({ 
         success: false, 
-        error: 'File size must be less than 50MB' 
+        error: 'File too large. Maximum size is 50MB.' 
       });
     }
 
-    // Read file content
+    // Read and process the file
     const csvText = await file.text();
     
-    // Process CSV with special format handling
+    try {
     const processedData = processSpecialCSV(csvText);
-    
-    if (processedData.rowCount === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'No valid data found in CSV' 
-      });
-    }
 
     // Create metadata
     const metadata = createCSVMetadata(
@@ -62,31 +55,31 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
       'user'
     );
 
-    // Try to update metadata in Supabase
+      // Try to save to Supabase
     try {
       await updateCSVMetadata(metadata);
-    } catch (_error) {
-      // Supabase not available, continue with fallback
+      } catch {
+        // Supabase failed, continue with fallback
     }
 
-    // Save to fallback storage
-    try {
-      setFallbackData(processedData.data, metadata);
-    } catch (_error) {
-      // Fallback storage failed, continue anyway
-    }
+      // Always save to fallback storage
+      setFallbackData(processedData.data, metadata as unknown as Record<string, unknown>);
 
     return NextResponse.json({
       success: true,
       data: processedData.data,
-      metadata: metadata,
-      message: `Successfully processed ${processedData.rowCount} rows`
-    });
-
-  } catch (_error) {
+        metadata: metadata
+      });
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to process CSV file. Please check the file format.'
+      });
+    }
+  } catch {
     return NextResponse.json({ 
       success: false, 
-      error: 'Upload failed' 
+      error: 'Upload failed. Please try again.'
     });
   }
 } 

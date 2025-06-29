@@ -42,9 +42,8 @@ export function setFallbackData(csvData: Array<Record<string, unknown>>, metadat
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(storageData));
     }
-  } catch (_error) {
-    // Silently fail if localStorage is not available
-    // Memory cache still works for current session
+  } catch {
+    console.error('Failed to save fallback data');
   }
 }
 
@@ -76,9 +75,9 @@ export function getFallbackData(): FallbackData | null {
         }
       }
     }
-  } catch (_error) {
-    // Clear corrupted data
-    clearFallbackData();
+  } catch {
+    console.error('Failed to get fallback data');
+    return null;
   }
 
   return null;
@@ -96,8 +95,8 @@ export function clearFallbackData() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
     }
-  } catch (_error) {
-    // Silently fail
+  } catch {
+    console.error('Failed to clear fallback data');
   }
 }
 

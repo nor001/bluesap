@@ -82,8 +82,9 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
           if (!isNaN(date.getTime())) {
             normalizedRow[col] = date.toISOString();
           }
-        } catch (_e) {
-          // Keep original value if parsing fails
+        } catch {
+          // Failed to parse date, keep original value
+          // Continue with next iteration
         }
       }
     });

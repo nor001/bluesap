@@ -7,7 +7,7 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: true,
+  swcMinify: false, // Deshabilitado temporalmente para resolver error SWC en Windows
   // Configuración para API routes
   async headers() {
     return [

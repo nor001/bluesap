@@ -1,12 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AppState, FilterState, MetricsData, TimelineData, CSVMetadata } from './types';
-import { AppConfig } from './config';
-import { convertToSimpleCSV } from './csv-processor';
 import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
 import { logError } from './error-handler';
 import { auditedFetch } from './auditedFetch';
 import { calculateAssignments } from './assignment-calculator';
+import { useCallback } from 'react';
 
 interface AppStore extends AppState {
   // Actions
@@ -290,7 +289,7 @@ export const createAppStore = () => create<AppStore>()(
             localStorage.removeItem('bluesap-csv-cache');
             return false;
           }
-        } catch (error) {
+        } catch {
           // Clear corrupted cache
           if (typeof window !== 'undefined') {
             localStorage.removeItem('bluesap-csv-cache');
@@ -311,7 +310,7 @@ export const createAppStore = () => create<AppStore>()(
           };
           
           localStorage.setItem('bluesap-csv-cache', JSON.stringify(cacheData));
-        } catch (_error) {
+        } catch {
           // Silently fail - cache is optional
         }
       },
@@ -322,7 +321,7 @@ export const createAppStore = () => create<AppStore>()(
           if (typeof window !== 'undefined') {
             localStorage.removeItem('bluesap-csv-cache');
           }
-        } catch (_error) {
+        } catch {
           // Silently fail
         }
       },
