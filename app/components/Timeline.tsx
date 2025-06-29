@@ -13,7 +13,6 @@ import {
   TimeScale,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
-import { useAppStore } from '@/lib/store';
 
 // Register Chart.js components
 ChartJS.register(

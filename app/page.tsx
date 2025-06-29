@@ -15,7 +15,6 @@ export default function Home() {
     csvData,
     assignedData,
     filters,
-    uploadCSV,
     assignResources,
     updateFilters,
     fetchCSVMetadata,
