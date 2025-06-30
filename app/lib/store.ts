@@ -391,8 +391,8 @@ export const createAppStore = () =>
                 });
                 return true;
               }
-            } catch (error) {
-              console.error('Failed to load cached data:', error);
+            } catch (_error) {
+              // Silently fail - cache is optional
             }
           }
           return false;
@@ -409,16 +409,16 @@ export const createAppStore = () =>
               timestamp: Date.now(),
             };
             localStorage.setItem('bluesap_cached_data', JSON.stringify(cacheData));
-          } catch (error) {
-            console.error('Failed to save to cache:', error);
+          } catch (_error) {
+            // Silently fail - cache is optional
           }
         },
 
         clearCache: () => {
           try {
             localStorage.removeItem('bluesap_cached_data');
-          } catch (error) {
-            console.error('Failed to clear cache:', error);
+          } catch (_error) {
+            // Silently fail
           }
         },
       }),

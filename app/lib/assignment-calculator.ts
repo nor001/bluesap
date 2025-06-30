@@ -1,4 +1,3 @@
-import { logError } from './error-handler';
 import { PlanConfig } from './types';
 
 // Helper functions for assignment calculation
@@ -25,95 +24,6 @@ function getNextWorkingDay(date: Date, holidays: Record<string, string>): Date {
   }
 
   return nextDay;
-}
-
-function calculateWorkingDates(
-  baseDate: string,
-  hours: number,
-  holidays: Record<string, string>
-): [Date | null, Date | null] {
-  if (!baseDate || hours <= 0) {
-    return [null, null];
-  }
-
-  try {
-    let startDate = new Date(baseDate);
-
-    // Adjust start date if it falls on a non-working day
-    if (!isWorkingDay(startDate, holidays)) {
-      startDate = getNextWorkingDay(startDate, holidays);
-    }
-
-    const days = Math.max(1, Math.ceil(hours / 8));
-    let endDate = new Date(startDate);
-
-    for (let i = 1; i < days; i++) {
-      endDate.setDate(endDate.getDate() + 1);
-      // Adjust end date if it falls on a non-working day
-      if (!isWorkingDay(endDate, holidays)) {
-        endDate = getNextWorkingDay(endDate, holidays);
-      }
-    }
-
-    // Adjust start date if it falls on weekend
-    if (startDate.getDay() === 0 || startDate.getDay() === 6) {
-      // Move to next Monday
-      const daysToAdd = startDate.getDay() === 0 ? 1 : 2;
-      startDate.setDate(startDate.getDate() + daysToAdd);
-    }
-
-    // Adjust end date if it falls on weekend
-    if (endDate.getDay() === 0 || endDate.getDay() === 6) {
-      // Move to previous Friday
-      const daysToSubtract = endDate.getDay() === 0 ? 2 : 1;
-      endDate.setDate(endDate.getDate() - daysToSubtract);
-    }
-
-    // Ensure end date is not before start date
-    if (endDate < startDate) {
-      endDate = new Date(startDate);
-    }
-
-    return [startDate, endDate];
-  } catch (error) {
-    logError(
-      {
-        type: 'processing',
-        message: 'Failed to calculate assignments',
-        details: error,
-        timestamp: Date.now(),
-        userFriendly: true,
-      },
-      'assignment-calculator'
-    );
-    return [null, null];
-  }
-}
-
-function checkConflict(
-  startNew: Date,
-  endNew: Date,
-  existingTasks: Array<Record<string, unknown>>,
-  startDateCol: string,
-  endDateCol: string
-): boolean {
-  if (existingTasks.length === 0) return false;
-
-  for (const task of existingTasks) {
-    const taskStart = task[startDateCol];
-    const taskEnd = task[endDateCol];
-
-    if (taskStart && taskEnd) {
-      const taskStartDate = new Date(taskStart as string);
-      const taskEndDate = new Date(taskEnd as string);
-
-      if (startNew <= taskEndDate && endNew >= taskStartDate) {
-        return true;
-      }
-    }
-  }
-
-  return false;
 }
 
 interface ABAPResource {
@@ -299,8 +209,8 @@ function calculatePriority(row: Record<string, unknown>): number {
   let priority = 0;
 
   // Higher priority for projects with specific modules
-  const module = String(row.modulo || '').toLowerCase();
-  if (module.includes('core') || module.includes('critical')) {
+  const moduleName = String(row.modulo || '').toLowerCase();
+  if (moduleName.includes('core') || moduleName.includes('critical')) {
     priority += 10;
   }
 
@@ -328,7 +238,7 @@ function calculatePriority(row: Record<string, unknown>): number {
 function performResourceAssignment(
   tasks: ProjectTask[],
   resources: ABAPResource[],
-  planConfig: PlanConfig
+  _planConfig: PlanConfig
 ): ProjectTask[] {
   const assignedTasks: ProjectTask[] = [];
   const resourceMap = new Map(resources.map(r => [r.name, { ...r }]));

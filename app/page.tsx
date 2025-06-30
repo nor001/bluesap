@@ -20,12 +20,9 @@ export default function HomePage() {
     filters,
     loading,
     planType,
-    metrics,
-    timelineData,
     csvMetadata,
     assignResources,
     updateFilters,
-    setPlanType,
     fetchCSVMetadata,
     loadCachedData,
     loadFallbackData,
@@ -49,8 +46,8 @@ export default function HomePage() {
         await fetchCSVMetadata();
         
         setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize app:', error);
+      } catch (_error) {
+        // Silently fail - initialization is optional
         setIsInitialized(true);
       }
     };
@@ -127,13 +124,13 @@ export default function HomePage() {
 
     return assignedData.filter((item: Record<string, unknown>) => {
       const project = String(item.proyecto || '');
-      const module = String(item.modulo || '');
+      const moduleName = String(item.modulo || '');
       const grupo = String(item.grupo_dev || '');
       const id = String(item.id || '');
       const consultant = String(item.consultor_ntt || '');
 
       const projectMatch = filters.selected_proy === 'Todos' || project === filters.selected_proy;
-      const moduleMatch = filters.selected_modulo === 'Todos' || module === filters.selected_modulo;
+      const moduleMatch = filters.selected_modulo === 'Todos' || moduleName === filters.selected_modulo;
       const grupoMatch = filters.selected_grupo === 'Todos' || grupo === filters.selected_grupo;
       const idMatch = !filters.id_filter || id.includes(filters.id_filter);
       const consultantMatch = filters.consultor_ntt === 'Todos' || consultant === filters.consultor_ntt;

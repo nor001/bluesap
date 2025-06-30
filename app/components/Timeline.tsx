@@ -191,9 +191,6 @@ export function Timeline({ data, planConfig }: TimelineProps) {
           ...limitedTimelineData.map(item => new Date(item.end).getTime())
         )
       );
-      const totalDays = Math.ceil(
-        (latestDate.getTime() - earliestDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
 
       // Generar todos los días (incluyendo fines de semana) para el encabezado
       const dateHeaders: Date[] = [];
