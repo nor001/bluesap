@@ -1,7 +1,7 @@
 import { PlanConfig } from './types';
 
 // Helper functions for assignment calculation
-function isHoliday(date: Date, holidays: Record<string, string>): boolean {
+function _isHoliday(date: Date, holidays: Record<string, string>): boolean {
   const dateStr = date.toISOString().split('T')[0];
   return dateStr in holidays;
 }
