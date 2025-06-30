@@ -1,6 +1,5 @@
-import { AppConfig } from './config';
 import { logError } from './error-handler';
-import { ResourceConfig } from './types';
+import { PlanConfig } from './types';
 
 // Helper functions for assignment calculation
 function isHoliday(date: Date, holidays: Record<string, string>): boolean {
@@ -117,178 +116,283 @@ function checkConflict(
   return false;
 }
 
+interface ABAPResource {
+  name: string;
+  availableHours: number;
+  assignedHours: number;
+  skills: string[];
+  currentLoad: number;
+}
+
+interface ProjectTask {
+  id: string;
+  project: string;
+  module: string;
+  hours: number;
+  priority: number;
+  startDate: Date;
+  endDate: Date;
+  assignedResource?: string;
+}
+
+/**
+ * Calculates optimal resource assignments for SAP projects
+ * Special cases: Handles different plan types, resource availability, and skill matching
+ */
 export function calculateAssignments(
-  data: Array<Record<string, unknown>>,
+  csvData: Array<Record<string, unknown>>,
   planType: string
 ): Array<Record<string, unknown>> {
-  if (!data || !Array.isArray(data) || data.length === 0) {
+  if (!csvData || csvData.length === 0) {
     return [];
   }
 
-  const planConfig = AppConfig.getPlanConfig(planType);
-  const holidays = AppConfig.PERU_HOLIDAYS;
+  // Get plan configuration based on type
+  const planConfig = getPlanConfiguration(planType);
+  
+  // Extract and validate ABAP resources
+  const abapResources = extractABAPResources(csvData, planConfig);
+  
+  // Extract project tasks
+  const projectTasks = extractProjectTasks(csvData, planConfig);
+  
+  // Perform assignment calculation
+  const assignments = performResourceAssignment(projectTasks, abapResources, planConfig);
+  
+  // Convert back to original format
+  return convertToOriginalFormat(assignments, csvData);
+}
 
-  // Create working copy
-  const workingData = [...data];
+/**
+ * Get plan configuration based on plan type
+ */
+function getPlanConfiguration(planType: string): PlanConfig {
+  const configs: Record<string, PlanConfig> = {
+    'Plan de Desarrollo': {
+      start_date_col: 'plan_abap_dev_ini',
+      end_date_col: 'plan_abap_dev_fin',
+      resource_col: 'abap_asignado',
+      hours_col: 'plan_abap_dev_time',
+      resource_title: 'ABAP Developer',
+      resources_title: 'ABAP Developers',
+      assigned_title: 'Asignado',
+      available_date_col: 'esfu_disponible',
+      plan_date_col: 'plan_abap_dev_ini',
+      use_group_based_assignment: false,
+      module_col: 'modulo',
+      project_col: 'proyecto',
+    },
+    'Plan de PU': {
+      start_date_col: 'plan_abap_pu_ini',
+      end_date_col: 'plan_abap_pu_fin',
+      resource_col: 'abap_asignado',
+      hours_col: 'plan_abap_pu_time',
+      resource_title: 'ABAP PU',
+      resources_title: 'ABAP PUs',
+      assigned_title: 'Asignado',
+      available_date_col: 'esfu_disponible',
+      plan_date_col: 'plan_abap_pu_ini',
+      use_group_based_assignment: false,
+      module_col: 'modulo',
+      project_col: 'proyecto',
+    },
+    'Plan de Test': {
+      start_date_col: 'available_test_date',
+      end_date_col: 'available_test_date',
+      resource_col: 'abap_asignado',
+      hours_col: 'plan_abap_dev_time',
+      resource_title: 'ABAP Test',
+      resources_title: 'ABAP Testers',
+      assigned_title: 'Asignado',
+      available_date_col: 'esfu_disponible',
+      plan_date_col: 'available_test_date',
+      use_group_based_assignment: false,
+      module_col: 'modulo',
+      project_col: 'proyecto',
+    },
+  };
 
-  // Ensure required columns exist
-  if (!workingData[0][planConfig.resource_col]) {
-    workingData.forEach(row => (row[planConfig.resource_col] = null));
-  }
-  if (!workingData[0][planConfig.start_date_col]) {
-    workingData.forEach(row => (row[planConfig.start_date_col] = null));
-  }
-  if (!workingData[0][planConfig.end_date_col]) {
-    workingData.forEach(row => (row[planConfig.end_date_col] = null));
-  }
+  return configs[planType] || configs['Plan de Desarrollo'];
+}
 
-  // Process already assigned tasks
-  const alreadyAssigned = workingData.filter(
-    row =>
-      row[planConfig.resource_col] &&
-      row[planConfig.resource_col] !== '' &&
-      row[planConfig.resource_col] !== 'None' &&
-      row[planConfig.resource_col] !== 'nan'
-  );
+/**
+ * Extract ABAP resources from CSV data
+ */
+function extractABAPResources(
+  csvData: Array<Record<string, unknown>>,
+  planConfig: PlanConfig
+): ABAPResource[] {
+  const resourceMap = new Map<string, ABAPResource>();
 
-  for (const row of alreadyAssigned) {
-    if (!row[planConfig.start_date_col] || !row[planConfig.end_date_col]) {
-      const hours = (row[planConfig.hours_col] as number) || 8.0;
-      const baseDate =
-        row[planConfig.available_date_col] || row[planConfig.plan_date_col];
+  csvData.forEach((row) => {
+    const resourceName = String(row[planConfig.resource_col] || '');
+    const availableHours = Number(row[planConfig.available_date_col]) || 0;
+    const grupo = String(row.grupo_dev || '');
 
-      if (baseDate) {
-        const [start, end] = calculateWorkingDates(
-          baseDate as string,
-          hours,
-          holidays
-        );
-        if (start && end) {
-          row[planConfig.start_date_col] = start.toISOString();
-          row[planConfig.end_date_col] = end.toISOString();
+    if (resourceName && resourceName !== '' && resourceName !== 'None' && resourceName !== 'nan') {
+      if (!resourceMap.has(resourceName)) {
+        resourceMap.set(resourceName, {
+          name: resourceName,
+          availableHours: availableHours,
+          assignedHours: 0,
+          skills: [grupo],
+          currentLoad: 0,
+        });
+      } else {
+        // Update existing resource with additional skills
+        const existing = resourceMap.get(resourceName)!;
+        if (!existing.skills.includes(grupo)) {
+          existing.skills.push(grupo);
+        }
+        // Use the highest available hours
+        if (availableHours > existing.availableHours) {
+          existing.availableHours = availableHours;
         }
       }
     }
+  });
+
+  return Array.from(resourceMap.values());
+}
+
+/**
+ * Extract project tasks from CSV data
+ */
+function extractProjectTasks(
+  csvData: Array<Record<string, unknown>>,
+  planConfig: PlanConfig
+): ProjectTask[] {
+  return csvData
+    .filter((row) => {
+      const project = planConfig.project_col ? String(row[planConfig.project_col] || '') : '';
+      const hours = Number(row[planConfig.hours_col]) || 0;
+      return project && project !== '' && hours > 0;
+    })
+    .map((row, index) => {
+      const startDate = new Date(row[planConfig.start_date_col] as string);
+      const endDate = new Date(row[planConfig.end_date_col] as string);
+      
+      return {
+        id: String(row.id || index),
+        project: planConfig.project_col ? String(row[planConfig.project_col]) : '',
+        module: planConfig.module_col ? String(row[planConfig.module_col] || '') : '',
+        hours: Number(row[planConfig.hours_col]),
+        priority: calculatePriority(row),
+        startDate,
+        endDate,
+        assignedResource: String(row[planConfig.resource_col] || ''),
+      };
+    })
+    .sort((a, b) => {
+      // Sort by priority (higher first), then by start date
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority;
+      }
+      return a.startDate.getTime() - b.startDate.getTime();
+    });
+}
+
+/**
+ * Calculate task priority based on business rules
+ */
+function calculatePriority(row: Record<string, unknown>): number {
+  let priority = 0;
+
+  // Higher priority for projects with specific modules
+  const module = String(row.modulo || '').toLowerCase();
+  if (module.includes('core') || module.includes('critical')) {
+    priority += 10;
   }
 
-  // Process unassigned tasks
-  const unassigned = workingData.filter(
-    row =>
-      !row[planConfig.resource_col] ||
-      row[planConfig.resource_col] === '' ||
-      row[planConfig.resource_col] === 'None' ||
-      row[planConfig.resource_col] === 'nan'
-  );
+  // Higher priority for projects with more hours
+  const hours = Number(row.plan_abap_dev_time) || 0;
+  if (hours > 40) {
+    priority += 5;
+  }
 
-  // Sort by priority (hours descending)
-  unassigned.sort(
-    (a, b) =>
-      ((b[planConfig.hours_col] as number) || 0) -
-      ((a[planConfig.hours_col] as number) || 0)
-  );
+  // Higher priority for projects starting soon
+  const startDate = new Date(row.plan_abap_dev_ini as string);
+  const daysUntilStart = Math.ceil((startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  if (daysUntilStart <= 7) {
+    priority += 15;
+  } else if (daysUntilStart <= 30) {
+    priority += 10;
+  }
 
-  let dynamicConsultantIndex = 1;
+  return priority;
+}
 
-  for (const row of unassigned) {
-    const hours = (row[planConfig.hours_col] as number) || 8.0;
-    const baseDate =
-      row[planConfig.available_date_col] || row[planConfig.plan_date_col];
+/**
+ * Perform resource assignment using greedy algorithm
+ */
+function performResourceAssignment(
+  tasks: ProjectTask[],
+  resources: ABAPResource[],
+  planConfig: PlanConfig
+): ProjectTask[] {
+  const assignedTasks: ProjectTask[] = [];
+  const resourceMap = new Map(resources.map(r => [r.name, { ...r }]));
 
-    if (!baseDate) {
+  for (const task of tasks) {
+    // Skip if already assigned
+    if (task.assignedResource && task.assignedResource !== '' && task.assignedResource !== 'None') {
+      assignedTasks.push(task);
       continue;
     }
 
-    // Determine which resource configuration to use
-    let currentResourceConfig: Record<string, ResourceConfig>;
-    if (planConfig.use_group_based_assignment && row.grupo_dev) {
-      currentResourceConfig = AppConfig.getGroupConfig(row.grupo_dev as string);
-    } else {
-      currentResourceConfig = planConfig.resource_title.includes('Developer')
-        ? AppConfig.getAllDevelopersConfig()
-        : AppConfig.TESTERS_CONFIG;
-    }
-
-    // Find the best available resource
-    let bestResource: string | null = null;
-    let bestStartDate: Date | null = null;
-    let bestEndDate: Date | null = null;
-
-    for (const [resource, config] of Object.entries(currentResourceConfig)) {
-      const maxTasks = config.max_tasks || 15;
-
-      // Count current tasks for this resource
-      const currentTasks = workingData.filter(
-        row =>
-          row[planConfig.resource_col] === resource &&
-          row[planConfig.resource_col] != null
-      );
-
-      if (currentTasks.length >= maxTasks) {
-        continue;
-      }
-
-      // Check for conflicts with existing tasks
-      const [startDate, endDate] = calculateWorkingDates(
-        baseDate as string,
-        hours,
-        holidays
-      );
-
-      if (!startDate || !endDate) {
-        continue;
-      }
-
-      if (
-        !checkConflict(
-          startDate,
-          endDate,
-          currentTasks,
-          planConfig.start_date_col,
-          planConfig.end_date_col
-        )
-      ) {
-        bestResource = resource;
-        bestStartDate = startDate;
-        bestEndDate = endDate;
-        break;
-      }
-    }
-
-    // If no resource found, create a dynamic senior consultant
-    if (!bestResource) {
-      const dynamicConsultantName = `Senior_${dynamicConsultantIndex.toString().padStart(2, '0')}`;
-
-      // Generate dynamic consultant config
-      const dynamicConfig: ResourceConfig = {
-        level: 'SENIOR',
-        max_tasks: 15,
-      };
-
-      // Add to current resource config
-      currentResourceConfig[dynamicConsultantName] = dynamicConfig;
-
-      // Calculate dates for the new consultant
-      const [startDate, endDate] = calculateWorkingDates(
-        baseDate as string,
-        hours,
-        holidays
-      );
-
-      if (startDate && endDate) {
-        bestResource = dynamicConsultantName;
-        bestStartDate = startDate;
-        bestEndDate = endDate;
-        dynamicConsultantIndex++;
-      }
-    }
-
-    // Assign the task if a resource was found
+    // Find best available resource
+    const bestResource = findBestResource(task, Array.from(resourceMap.values()));
+    
     if (bestResource) {
-      row[planConfig.resource_col] = bestResource;
-      row[planConfig.start_date_col] = bestStartDate!.toISOString();
-      row[planConfig.end_date_col] = bestEndDate!.toISOString();
+      // Assign task to resource
+      task.assignedResource = bestResource.name;
+      bestResource.assignedHours += task.hours;
+      bestResource.currentLoad = (bestResource.assignedHours / bestResource.availableHours) * 100;
+      
+      assignedTasks.push(task);
+    } else {
+      // No available resource found
+      assignedTasks.push(task);
     }
   }
 
-  return workingData;
+  return assignedTasks;
+}
+
+/**
+ * Find the best available resource for a task
+ */
+function findBestResource(task: ProjectTask, resources: ABAPResource[]): ABAPResource | null {
+  const availableResources = resources.filter(r => {
+    const hasCapacity = r.assignedHours + task.hours <= r.availableHours;
+    const hasSkill = r.skills.some(skill => 
+      skill.toLowerCase().includes(task.module.toLowerCase()) ||
+      task.module.toLowerCase().includes(skill.toLowerCase())
+    );
+    return hasCapacity && (hasSkill || r.skills.length === 0);
+  });
+
+  if (availableResources.length === 0) {
+    return null;
+  }
+
+  // Sort by load (prefer less loaded resources)
+  availableResources.sort((a, b) => a.currentLoad - b.currentLoad);
+  
+  return availableResources[0];
+}
+
+/**
+ * Convert assignments back to original CSV format
+ */
+function convertToOriginalFormat(
+  assignments: ProjectTask[],
+  originalData: Array<Record<string, unknown>>
+): Array<Record<string, unknown>> {
+  const assignmentMap = new Map(assignments.map(a => [a.id, a.assignedResource]));
+
+  return originalData.map(row => ({
+    ...row,
+    abap_asignado: assignmentMap.get(String(row.id || '')) || row.abap_asignado || '',
+  }));
 }

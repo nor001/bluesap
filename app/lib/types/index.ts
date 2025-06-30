@@ -15,6 +15,8 @@ export interface PlanConfig {
   resources_title: string;
   assigned_title: string;
   use_group_based_assignment: boolean;
+  module_col?: string;
+  project_col?: string;
 }
 
 export interface FilterState {

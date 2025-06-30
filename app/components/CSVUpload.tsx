@@ -16,12 +16,8 @@ interface SAPProjectData {
 }
 
 /**
- * @ai-context Component for uploading and processing SAP project CSV files
- * @ai-purpose Allows uploading CSV files with project data and ABAP resources
- * @ai-data-expects CSV files with date columns, resources, hours and modules
- * @ai-business-context Resource planning management in SAP projects
- * @ai-special-cases Handles different CSV formats and corporate validations
- * @ai-error-handling File, format and data validation before processing
+ * Component for uploading and processing SAP project CSV files
+ * Handles different CSV formats and corporate validations
  */
 export function CSVUpload() {
   const { uploadParsedCSVData, csvData } = useAppStore();
@@ -30,10 +26,7 @@ export function CSVUpload() {
   const [errorMessage, setErrorMessage] = useState('');
 
   /**
-   * @ai-function Validates and processes CSV file for SAP projects
-   * @ai-params file - CSV file selected by user
-   * @ai-returns Promise<void> - Processing result
-   * @ai-business-rules Validates format, size and SAP data structure
+   * Validates and processes CSV file for SAP projects
    */
   const handleCSVFileUpload = useCallback(async (file: File) => {
     setIsUploading(true);
@@ -109,8 +102,7 @@ export function CSVUpload() {
   }, [uploadParsedCSVData]);
 
   /**
-   * @ai-function Handles file selection event
-   * @ai-params event - File input change event
+   * Handles file selection event
    */
   const handleFileSelection = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -120,8 +112,7 @@ export function CSVUpload() {
   }, [handleCSVFileUpload]);
 
   /**
-   * @ai-function Handles CSV file drag and drop
-   * @ai-params event - Drop event
+   * Handles CSV file drag and drop
    */
   const handleFileDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -200,22 +191,11 @@ export function CSVUpload() {
               </label>
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Solo archivos CSV con datos de proyectos SAP
+              Formatos soportados: CSV (máximo 10MB)
             </p>
           </div>
         )}
       </div>
-
-      {csvData && csvData.length > 0 && (
-        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <h3 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-            Datos Cargados
-          </h3>
-          <p className="text-sm text-blue-700 dark:text-blue-300">
-            {csvData.length} registros de proyectos SAP listos para asignación de recursos
-          </p>
-        </div>
-      )}
     </div>
   );
 }

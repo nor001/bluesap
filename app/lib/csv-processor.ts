@@ -19,9 +19,9 @@ export interface CSVMetadata {
 }
 
 /**
- * Procesa un CSV con formato especial (header en línea 3)
- * @param csvText - Contenido del CSV como texto
- * @returns Datos procesados y metadata
+ * Process CSV with special format (header on line 3)
+ * @param csvText - CSV content as text
+ * @returns Processed data and metadata
  */
 export function processSpecialCSV(csvText: string): ProcessedCSVData {
   // Split text into lines and skip first 2 lines (special format)
@@ -111,9 +111,9 @@ export function processSpecialCSV(csvText: string): ProcessedCSVData {
 }
 
 /**
- * Convierte datos procesados de vuelta al formato CSV original
- * @param data - Datos procesados
- * @returns CSV en formato original (con primeras 2 líneas)
+ * Convert processed data back to original CSV format
+ * @param data - Processed data
+ * @returns CSV in original format (with first 2 lines)
  */
 export function convertToOriginalCSVFormat(data: CSVRow[]): string {
   if (!data || data.length === 0) {
@@ -144,9 +144,9 @@ export function convertToOriginalCSVFormat(data: CSVRow[]): string {
 }
 
 /**
- * Convierte datos procesados a formato CSV simple (sin líneas especiales)
- * @param data - Datos procesados
- * @returns CSV simple para descarga
+ * Convert processed data to simple CSV format (without special lines)
+ * @param data - Processed data
+ * @returns Simple CSV for download
  */
 export function convertToSimpleCSV(data: CSVRow[]): string {
   if (!data || data.length === 0) {
@@ -170,12 +170,12 @@ export function convertToSimpleCSV(data: CSVRow[]): string {
 }
 
 /**
- * Crea metadata para los datos procesados
- * @param data - Datos procesados
- * @param fileSize - Tamaño del archivo original
- * @param uploadedBy - Quién subió el archivo
- * @param id - ID opcional para la metadata
- * @returns Metadata del CSV
+ * Create metadata for processed data
+ * @param data - Processed data
+ * @param fileSize - Original file size
+ * @param uploadedBy - Who uploaded the file
+ * @param id - Optional ID for metadata
+ * @returns CSV metadata
  */
 export function createCSVMetadata(
   data: CSVRow[],
@@ -193,20 +193,21 @@ export function createCSVMetadata(
 }
 
 /**
- * Valida si un archivo CSV es válido
- * @param file - Archivo a validar
- * @returns true si es válido
+ * Validate if a CSV file is valid
+ * @param file - File to validate
+ * @returns true if valid
  */
 export function validateCSVFile(file: File): boolean {
-  // Validate file type
-  if (!file.name.toLowerCase().endsWith('.csv')) {
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  const allowedTypes = ['text/csv', 'application/csv', 'application/vnd.ms-excel'];
+  
+  if (file.size > maxSize) {
     return false;
   }
-
-  // Validate file size (50MB limit)
-  if (file.size > 50 * 1024 * 1024) {
+  
+  if (!allowedTypes.includes(file.type) && !file.name.endsWith('.csv')) {
     return false;
   }
-
+  
   return true;
 }

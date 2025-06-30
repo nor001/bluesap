@@ -1,107 +1,78 @@
 'use client';
 
 import { PlanConfig } from '@/lib/types';
-import {
-  BarElement,
-  CategoryScale,
-  Chart as ChartJS,
-  Legend,
-  LinearScale,
-  TimeScale,
-  Title,
-  Tooltip,
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
 import { useEffect, useMemo, useState } from 'react';
 
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  TimeScale
-);
-
 interface TimelineProps {
-  data: Array<{
-    ID?: string;
-    grupo_dev?: string;
-    [key: string]: unknown;
-  }>;
+  data: Array<Record<string, unknown>>;
   planConfig: PlanConfig;
 }
 
+interface TimelineItem {
+  Task: string;
+  Resource: string;
+  start: string;
+  end: string;
+  hours: number;
+}
+
 /**
- * @ai-context Main component for SAP project timeline visualization
- * @ai-purpose Displays assigned tasks in Gantt format with intelligent pagination
- * @ai-data-expects Array of objects with start/end dates and assigned resources
- * @ai-performance-notes Handles large datasets with pagination and memoization
- * @ai-business-context ABAP resource planning visualization in SAP projects
- * @ai-special-cases Supports different date formats and module grouping
- * @ai-cognitive-load medium - Complex component with multiple states
- * @ai-focus-state clear - Well-defined pagination and filtering logic
- * @ai-session-type standard - Routine visualization operation
+ * Main component for SAP project timeline visualization
+ * Displays assigned tasks in Gantt format with intelligent pagination
+ * Special cases: Supports different date formats and module grouping
  */
 export function Timeline({ data, planConfig }: TimelineProps) {
-  const [isClient, setIsClient] = useState(false);
-  const defaultViewMode = 'gantt';
-  const [viewMode, setViewMode] = useState<'table' | 'chart' | 'gantt'>(
-    defaultViewMode
-  );
   const [currentPage, setCurrentPage] = useState(0);
-  const [tasksPerPage, setTasksPerPage] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('timeline-tasks-per-page');
-      return stored ? Number(stored) : 10;
-    }
-    return 10;
-  });
-  const [columnWidth] = useState(4);
-  const [isMobile, setIsMobile] = useState(false);
+  const [tasksPerPage, setTasksPerPage] = useState(20);
+  const [viewMode, setViewMode] = useState<'list' | 'gantt'>('gantt');
+  const [columnWidth, setColumnWidth] = useState(4);
+  const [isClient, setIsClient] = useState(false);
 
+  // Client-side rendering check
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Detect mobile screen size for responsive design
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  // Memoize timelineData to prevent unnecessary re-renders and improve performance
-  const timelineData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+  // Convert data to timeline format
+  const timelineData: TimelineItem[] = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
 
     return data
-      .filter((item: Record<string, unknown>) => {
-        if (
-          planConfig.resource_col &&
-          item[planConfig.resource_col] !== planConfig.resource_col
-        )
-          return false;
-        return true;
+      .filter((item) => {
+        const startDate = item[planConfig.start_date_col];
+        const endDate = item[planConfig.end_date_col];
+        const resource = item[planConfig.resource_col];
+        const hours = item[planConfig.hours_col];
+
+        return (
+          startDate &&
+          endDate &&
+          resource &&
+          resource !== '' &&
+          resource !== 'None' &&
+          resource !== 'nan' &&
+          hours &&
+          Number(hours) > 0
+        );
       })
-      .map((item: Record<string, unknown>) => ({
-        ...item,
-        start: new Date(item[planConfig.start_date_col] as string),
-        end: new Date(item[planConfig.end_date_col] as string),
-        Task: item.ID || `Task_${data.indexOf(item)}`,
-        Resource: item[planConfig.resource_col] as string,
-        Hours: Number(item[planConfig.hours_col]) || 8.0,
-        dev_group: String(item.grupo_dev || 'N/A'),
+      .map((item) => ({
+        Task: String(item.id || item.proyecto || 'Unknown Task'),
+        Resource: String(item[planConfig.resource_col]),
+        start: new Date(item[planConfig.start_date_col] as string).toISOString(),
+        end: new Date(item[planConfig.end_date_col] as string).toISOString(),
+        hours: Number(item[planConfig.hours_col]) || 0,
       }))
-      .sort((a, b) => a.start.getTime() - b.start.getTime());
+      .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
   }, [data, planConfig]);
+
+  // Pagination
+  const totalPages = Math.ceil(timelineData.length / tasksPerPage);
+  const startIndex = currentPage * tasksPerPage;
+  const endIndex = startIndex + tasksPerPage;
+  const limitedTimelineData = timelineData.slice(startIndex, endIndex);
+
+  // Mobile detection
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   // Debug logging for development environment with systematic isolation
   useEffect(() => {
@@ -179,86 +150,32 @@ export function Timeline({ data, planConfig }: TimelineProps) {
     return COLOR_PALETTE[idx % COLOR_PALETTE.length];
   };
 
-  // Prepare Gantt data with pagination for better performance
-  const sortedTimelineData = [...timelineData].sort((a, b) => {
-    const startA = new Date(a.start);
-    const startB = new Date(b.start);
-    return startA.getTime() - startB.getTime();
-  });
-
-  // Paginate the data for better performance with large datasets
-  const startIndex = currentPage * tasksPerPage;
-  const endIndex = startIndex + tasksPerPage;
-  const limitedTimelineData = sortedTimelineData.slice(startIndex, endIndex);
-
-  // Loading state for client-side rendering
   if (!isClient) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">
-            📊
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="animate-pulse">
+          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-6 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            ))}
           </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            Loading Timeline...
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            Preparing timeline view
-          </p>
         </div>
       </div>
     );
   }
 
-  // No data state with helpful information
-  if (timelineData.length === 0) {
+  if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 bg-gray-50 dark:bg-gray-800 rounded-lg">
-        <div className="text-center">
-          <div className="text-gray-400 dark:text-gray-500 text-6xl mb-4">
-            📊
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No Timeline Data
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            {data.length > 0
-              ? `Data available but missing date columns. Found columns: ${Object.keys(data[0] || {}).join(', ')}`
-              : 'Upload CSV data and assign resources to see the timeline'}
-          </p>
-          {data.length > 0 && (
-            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md text-left">
-              <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-2">
-                <strong>Expected columns:</strong>
-              </p>
-              <ul className="text-xs text-yellow-600 dark:text-yellow-400 space-y-1">
-                <li>• Start Date: {planConfig.start_date_col}</li>
-                <li>• End Date: {planConfig.end_date_col}</li>
-                <li>• Resource: {planConfig.resource_col}</li>
-                <li>• Hours: {planConfig.hours_col}</li>
-              </ul>
-            </div>
-          )}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <div className="text-4xl mb-4">📊</div>
+          <h3 className="text-lg font-medium mb-2">No hay datos para mostrar</h3>
+          <p>Sube un archivo CSV con datos de proyectos para ver la línea de tiempo</p>
         </div>
       </div>
     );
   }
-
-  // View toggle component for different visualization modes
-  const ViewToggle = () => (
-    <div className="flex space-x-2 mb-4">
-      <button
-        onClick={() => setViewMode('gantt')}
-        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-          viewMode === 'gantt'
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-        }`}
-      >
-        📅 Gantt View
-      </button>
-    </div>
-  );
 
   // Gantt view component
   const GanttView = () => {
@@ -310,106 +227,96 @@ export function Timeline({ data, planConfig }: TimelineProps) {
       const visibleDateHeaders = dateHeaders;
 
       return (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          {/* Header Controls */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Microsoft Project Style Gantt ({planConfig.resource_title})
-            </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Tasks in rows, time in columns - Microsoft Project format
-            </p>
-            <div className="mt-2 text-xs text-gray-400 dark:text-gray-500">
-              <p>
-                Showing {visibleDateHeaders.length} days from{' '}
-                {earliestDate.toLocaleDateString()} to{' '}
-                {latestDate.toLocaleDateString()}
-              </p>
-              <p>
-                Column width: {effectiveColumnWidth * 4}px (calculated:{' '}
-                {effectiveColumnWidth}px base)
-              </p>
-              <p>Total timeline span: {totalDays} days</p>
-              <p>
-                Showing tasks {startIndex + 1}-
-                {Math.min(endIndex, timelineData.length)} of{' '}
-                {timelineData.length}
-              </p>
-              {isMobile && (
-                <p className="text-blue-600 dark:text-blue-400 font-medium">
-                  📱 Mobile view: Showing first 14 days for better readability
-                </p>
-              )}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Línea de Tiempo Gantt
+                </h3>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {limitedTimelineData.length} tareas mostradas
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {/* Column Width Control */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400">
+                    Ancho:
+                  </label>
+                  <select
+                    value={columnWidth}
+                    onChange={(e) => setColumnWidth(Number(e.target.value))}
+                    className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value={3}>Narrow</option>
+                    <option value={4}>Normal</option>
+                    <option value={6}>Wide</option>
+                    <option value={8}>Extra Wide</option>
+                  </select>
+                </div>
+
+                {/* Tasks Per Page Control */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600 dark:text-gray-400">
+                    Por página:
+                  </label>
+                  <select
+                    value={tasksPerPage}
+                    onChange={(e) => {
+                      setTasksPerPage(Number(e.target.value));
+                      setCurrentPage(0);
+                    }}
+                    className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 mb-2">
-            <label className="text-sm text-gray-600 dark:text-gray-400">
-              Tasks per page:
-            </label>
-            <select
-              value={tasksPerPage}
-              onChange={e => {
-                const value = Number(e.target.value);
-                setTasksPerPage(value);
-                setCurrentPage(0);
-                if (typeof window !== 'undefined') {
-                  localStorage.setItem(
-                    'timeline-tasks-per-page',
-                    String(value)
-                  );
-                }
-              }}
-              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
+          {/* Timeline Header */}
+          <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <div className="w-28 p-2 border-r border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 flex-shrink-0">
+              <div className="text-xs font-medium text-gray-900 dark:text-white">
+                Tarea
+              </div>
+            </div>
+            <div className="flex flex-1 min-w-0 overflow-x-auto">
+              {visibleDateHeaders.map((date, index) => (
+                <div
+                  key={index}
+                  className={`p-2 border-r border-gray-200 dark:border-gray-600 flex-shrink-0 text-center ${
+                    date.getDay() === 0 || date.getDay() === 6
+                      ? 'bg-red-50 dark:bg-red-900/20'
+                      : 'bg-gray-50 dark:bg-gray-700'
+                  }`}
+                  style={{
+                    width: `${effectiveColumnWidth * 4}px`,
+                    minWidth: `${effectiveColumnWidth * 4}px`,
+                  }}
+                >
+                  <div className="text-xs font-medium text-gray-900 dark:text-white">
+                    {date.getDate()}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {date.toLocaleDateString('es-ES', { month: 'short' })}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="overflow-x-auto w-full">
-            <div className="w-full min-w-max">
-              {/* Date Headers */}
-              <div className="flex border-b border-gray-200 dark:border-gray-700">
-                <div
-                  className="w-28 p-0 bg-gray-50 dark:bg-gray-700 border-r border-gray-200 dark:border-gray-600 font-medium text-xs text-gray-700 dark:text-gray-300 flex-shrink-0 flex items-center justify-start"
-                  style={{ minWidth: '7rem', height: '24px' }}
-                >
-                  Task ID / ABAP
-                </div>
-                <div className="flex flex-1 min-w-0">
-                  {visibleDateHeaders.map((date, index) => (
-                    <div
-                      key={index}
-                      className={`h-6 border-r border-gray-200 dark:border-gray-600 relative flex-shrink-0 flex items-center justify-center ${
-                        date.getDay() === 0 || date.getDay() === 6
-                          ? 'bg-red-50 dark:bg-red-900/20'
-                          : 'bg-gray-50 dark:bg-gray-700'
-                      }`}
-                      style={{
-                        width: `${effectiveColumnWidth * 4}px`,
-                        minWidth: `${effectiveColumnWidth * 4}px`,
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          lineHeight: '12px',
-                          display: 'block',
-                          margin: 0,
-                          textAlign: 'center',
-                        }}
-                      >
-                        {date.getDate()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Timeline Content */}
+          <div className="overflow-y-auto max-h-96">
+            <div className="min-w-full">
 
-              {/* Task Rows */}
               {limitedTimelineData.map((item, index) => {
                 const taskStart = new Date(item.start);
                 const taskEnd = new Date(item.end);
@@ -483,56 +390,168 @@ export function Timeline({ data, planConfig }: TimelineProps) {
           </div>
 
           {/* Pagination Controls */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {startIndex + 1}-{Math.min(endIndex, timelineData.length)}{' '}
-              of {timelineData.length} tasks
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Mostrando {startIndex + 1} a {Math.min(endIndex, timelineData.length)} de{' '}
+                  {timelineData.length} tareas
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
+                    disabled={currentPage === 0}
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Página {currentPage + 1} de {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))}
+                    disabled={currentPage === totalPages - 1}
+                    className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
-                disabled={currentPage === 0}
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                Page {currentPage + 1} of{' '}
-                {Math.ceil(timelineData.length / tasksPerPage)}
-              </span>
-              <button
-                onClick={() =>
-                  setCurrentPage(
-                    Math.min(
-                      Math.ceil(timelineData.length / tasksPerPage) - 1,
-                      currentPage + 1
-                    )
-                  )
-                }
-                disabled={
-                  currentPage >=
-                  Math.ceil(timelineData.length / tasksPerPage) - 1
-                }
-                className="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-600"
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       );
     }
+
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="text-center text-gray-500 dark:text-gray-400">
+          <div className="text-4xl mb-4">📊</div>
+          <h3 className="text-lg font-medium mb-2">No hay tareas asignadas</h3>
+          <p>Asigna recursos a las tareas para ver la línea de tiempo</p>
+        </div>
+      </div>
+    );
   };
 
-  // View component
-  const ViewComponent = GanttView;
+  // List view component
+  const ListView = () => (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Lista de Tareas
+        </h3>
+      </div>
+      <div className="overflow-y-auto max-h-96">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Tarea
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Recurso
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Inicio
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Fin
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Horas
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {limitedTimelineData.map((item, index) => (
+              <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {item.Task}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    <div
+                      className="w-3 h-3 rounded-full mr-2"
+                      style={{ backgroundColor: getABAPColor(item.Resource) }}
+                    ></div>
+                    <span className="text-sm text-gray-900 dark:text-white">
+                      {item.Resource}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {new Date(item.start).toLocaleDateString('es-ES')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {new Date(item.end).toLocaleDateString('es-ES')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                  {item.hours}h
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="flex flex-col space-y-4">
-      <ViewToggle />
-      {ViewComponent()}
+    <div className="space-y-4">
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => setViewMode('gantt')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              viewMode === 'gantt'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Vista Gantt
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-blue-600 text-white'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+            }`}
+          >
+            Vista Lista
+          </button>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center space-x-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            Recursos:
+          </div>
+          <div className="flex items-center space-x-2">
+            {uniqueAbaps.slice(0, 5).map((abap) => (
+              <div key={abap} className="flex items-center">
+                <div
+                  className="w-3 h-3 rounded-full mr-1"
+                  style={{ backgroundColor: getABAPColor(abap) }}
+                ></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400">
+                  {abap}
+                </span>
+              </div>
+            ))}
+            {uniqueAbaps.length > 5 && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                +{uniqueAbaps.length - 5} más
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      {viewMode === 'gantt' ? <GanttView /> : <ListView />}
     </div>
   );
 }
-
-export default Timeline;

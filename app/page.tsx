@@ -1,88 +1,148 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Sidebar from '@/components/Sidebar';
-import Timeline from '@/components/Timeline';
-import { Metrics } from '@/components/Metrics';
-import { Filters } from '@/components/Filters';
 import { CSVUpload } from '@/components/CSVUpload';
-import { TestComponent } from '@/components/TestComponent';
-import { SupabaseStatus } from '@/components/SupabaseStatus';
+import { Filters } from '@/components/Filters';
+import { Metrics } from '@/components/Metrics';
+import Sidebar from '@/components/Sidebar';
+import { Timeline } from '@/components/Timeline';
 import { useAppStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
 
-export default function Home() {
+/**
+ * Main application page for SAP project management
+ * Handles data loading, resource assignment, and timeline visualization
+ * Special cases: Fallback data loading, cache management, and Supabase synchronization
+ */
+export default function HomePage() {
   const {
     csvData,
     assignedData,
     filters,
+    loading,
+    planType,
+    metrics,
+    timelineData,
+    csvMetadata,
     assignResources,
     updateFilters,
+    setPlanType,
     fetchCSVMetadata,
-    loadFallbackData,
     loadCachedData,
+    loadFallbackData,
   } = useAppStore();
 
-  // State for UI
-  const [currentView, setCurrentView] = useState<
-    'timeline' | 'metrics' | 'upload' | 'test'
-  >('timeline');
-  const [showSidebar] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load data on component mount
+  // Initialize application data
   useEffect(() => {
-    const loadInitialData = async () => {
-      // Try to load from cache first
-      const cached = loadCachedData();
+    const initializeApp = async () => {
+      try {
+        // Try to load cached data first
+        const cachedLoaded = loadCachedData();
+        
+        if (!cachedLoaded) {
+          // Fallback to stored data if cache is empty
+          loadFallbackData();
+        }
 
-      if (!cached) {
-        // Try to load from fallback storage
-        loadFallbackData();
+        // Fetch metadata for display
+        await fetchCSVMetadata();
+        
+        setIsInitialized(true);
+      } catch (error) {
+        console.error('Failed to initialize app:', error);
+        setIsInitialized(true);
       }
-
-      // Always try to fetch fresh metadata
-      await fetchCSVMetadata();
     };
 
-    loadInitialData();
+    initializeApp();
   }, [loadCachedData, loadFallbackData, fetchCSVMetadata]);
 
-  // Auto-assign resources when CSV data changes
+  // Auto-assign resources when data changes
   useEffect(() => {
-    if (csvData && csvData.length > 0) {
-      assignResources();
-    }
-  }, [csvData, assignResources]);
+    if (csvData && csvData.length > 0 && isInitialized) {
+      const timer = setTimeout(() => {
+        assignResources();
+      }, 500);
 
-  // Get filtered data
-  const getFilteredData = useCallback(() => {
-    if (!assignedData || assignedData.length === 0) return [];
+      return () => clearTimeout(timer);
+    }
+  }, [csvData, isInitialized, assignResources]);
+
+  // Get plan configuration for timeline
+  const getPlanConfig = () => {
+    const configs = {
+      'Plan de Desarrollo': {
+        start_date_col: 'plan_abap_dev_ini',
+        end_date_col: 'plan_abap_dev_fin',
+        resource_col: 'abap_asignado',
+        hours_col: 'plan_abap_dev_time',
+        resource_title: 'ABAP Developer',
+        resources_title: 'ABAP Developers',
+        assigned_title: 'Asignado',
+        available_date_col: 'esfu_disponible',
+        plan_date_col: 'plan_abap_dev_ini',
+        use_group_based_assignment: false,
+        module_col: 'modulo',
+        project_col: 'proyecto',
+      },
+      'Plan de PU': {
+        start_date_col: 'plan_abap_pu_ini',
+        end_date_col: 'plan_abap_pu_fin',
+        resource_col: 'abap_asignado',
+        hours_col: 'plan_abap_pu_time',
+        resource_title: 'ABAP PU',
+        resources_title: 'ABAP PUs',
+        assigned_title: 'Asignado',
+        available_date_col: 'esfu_disponible',
+        plan_date_col: 'plan_abap_pu_ini',
+        use_group_based_assignment: false,
+        module_col: 'modulo',
+        project_col: 'proyecto',
+      },
+      'Plan de Test': {
+        start_date_col: 'available_test_date',
+        end_date_col: 'available_test_date',
+        resource_col: 'abap_asignado',
+        hours_col: 'plan_abap_dev_time',
+        resource_title: 'ABAP Test',
+        resources_title: 'ABAP Testers',
+        assigned_title: 'Asignado',
+        available_date_col: 'esfu_disponible',
+        plan_date_col: 'available_test_date',
+        use_group_based_assignment: false,
+        module_col: 'modulo',
+        project_col: 'proyecto',
+      },
+    };
+
+    return configs[planType as keyof typeof configs] || configs['Plan de Desarrollo'];
+  };
+
+  // Filter data based on current filters
+  const getFilteredData = () => {
+    if (!assignedData || assignedData.length === 0) {
+      return [];
+    }
 
     return assignedData.filter((item: Record<string, unknown>) => {
-      if (
-        filters.selected_proy !== 'Todos' &&
-        item.proyecto !== filters.selected_proy
-      )
-        return false;
-      if (
-        filters.selected_modulo !== 'Todos' &&
-        item.modulo !== filters.selected_modulo
-      )
-        return false;
-      if (
-        filters.selected_grupo !== 'Todos' &&
-        item.grupo_dev !== filters.selected_grupo
-      )
-        return false;
-      if (filters.id_filter && !String(item.id).includes(filters.id_filter))
-        return false;
-      if (
-        filters.consultor_ntt !== 'Todos' &&
-        item.consultor_ntt !== filters.consultor_ntt
-      )
-        return false;
-      return true;
+      const project = String(item.proyecto || '');
+      const module = String(item.modulo || '');
+      const grupo = String(item.grupo_dev || '');
+      const id = String(item.id || '');
+      const consultant = String(item.consultor_ntt || '');
+
+      const projectMatch = filters.selected_proy === 'Todos' || project === filters.selected_proy;
+      const moduleMatch = filters.selected_modulo === 'Todos' || module === filters.selected_modulo;
+      const grupoMatch = filters.selected_grupo === 'Todos' || grupo === filters.selected_grupo;
+      const idMatch = !filters.id_filter || id.includes(filters.id_filter);
+      const consultantMatch = filters.consultor_ntt === 'Todos' || consultant === filters.consultor_ntt;
+
+      return projectMatch && moduleMatch && grupoMatch && idMatch && consultantMatch;
     });
-  }, [assignedData, filters]);
+  };
+
+  const filteredData = getFilteredData();
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -91,109 +151,88 @@ export default function Home() {
         <Sidebar />
 
         {/* Main Content */}
-        <div
-          className={`flex-1 transition-all duration-300 ${showSidebar ? 'ml-64' : 'ml-0'}`}
-        >
-          <div className="p-6">
+        <div className="flex-1 p-6">
+          <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
-            <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                SAP Project Management
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Gestión y planificación de proyectos SAP
-              </p>
-            </div>
-
-            {/* Navigation */}
-            <div className="mb-6 flex space-x-4">
-              <button
-                onClick={() => setCurrentView('timeline')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'timeline'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Línea de Tiempo
-              </button>
-              <button
-                onClick={() => setCurrentView('metrics')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'metrics'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Métricas
-              </button>
-              <button
-                onClick={() => setCurrentView('upload')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'upload'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Subir CSV
-              </button>
-              <button
-                onClick={() => setCurrentView('test')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  currentView === 'test'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-                }`}
-              >
-                Test
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="space-y-6">
-              {/* Filters */}
-              <Filters
-                data={getFilteredData()}
-                onFilterChange={updateFilters}
-              />
-
-              {/* View Content */}
-              {currentView === 'timeline' && (
-                <Timeline
-                  data={getFilteredData()}
-                  planConfig={{
-                    start_date_col: 'fecha_inicio',
-                    end_date_col: 'fecha_fin',
-                    resource_col: 'responsable',
-                    hours_col: 'duracion',
-                    available_date_col: 'fecha_disponible',
-                    plan_date_col: 'fecha_plan',
-                    resource_title: 'ABAP',
-                    resources_title: 'ABAPs',
-                    assigned_title: 'Asignado',
-                    use_group_based_assignment: false,
-                  }}
-                />
-              )}
-
-              {currentView === 'metrics' && (
-                <Metrics
-                  data={getFilteredData()}
-                  planConfig={{
-                    resource_col: 'responsable',
-                  }}
-                />
-              )}
-
-              {currentView === 'upload' && (
-                <div className="space-y-6">
-                  <SupabaseStatus />
-                  <CSVUpload />
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Gestión de Proyectos SAP
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    Planificación y asignación de recursos ABAP
+                  </p>
                 </div>
-              )}
-
-              {currentView === 'test' && <TestComponent />}
+                <div className="flex items-center space-x-4">
+                  {csvMetadata && (
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <span>Última actualización: </span>
+                      <span className="font-medium">
+                        {new Date(csvMetadata.uploaded_at).toLocaleDateString('es-ES')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Upload Section */}
+            <CSVUpload />
+
+            {/* Metrics */}
+            {csvData && csvData.length > 0 && (
+              <Metrics 
+                data={filteredData} 
+                planConfig={getPlanConfig()}
+              />
+            )}
+
+            {/* Filters and Timeline */}
+            {assignedData && assignedData.length > 0 && (
+              <>
+                <Filters
+                  data={assignedData}
+                  onFilterChange={updateFilters}
+                />
+
+                <Timeline
+                  data={filteredData}
+                  planConfig={getPlanConfig()}
+                />
+              </>
+            )}
+
+            {/* Loading State */}
+            {loading && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600 dark:text-gray-400">
+                    Procesando datos...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* No Data State */}
+            {!loading && (!csvData || (Array.isArray(csvData) && csvData.length === 0)) && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">📊</div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Bienvenido a la Gestión de Proyectos SAP
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Sube un archivo CSV con datos de proyectos para comenzar
+                  </p>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <p>Formatos soportados: CSV con datos de proyectos SAP</p>
+                    <p>Columnas esperadas: proyecto, modulo, grupo_dev, plan_abap_dev_time, etc.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

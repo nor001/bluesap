@@ -5,18 +5,17 @@ import { auditedFetch } from './auditedFetch';
 import { logError } from './error-handler';
 import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
 import {
-    AppState,
-    CSVMetadata,
-    FilterState,
-    MetricsData,
-    TimelineData,
+  AppState,
+  CSVMetadata,
+  FilterState,
+  MetricsData,
+  TimelineData,
 } from './types';
 
 /**
- * @ai-context Main store for SAP application state management
- * @ai-purpose Manages global state of CSV data, assignments and filters
- * @ai-business-context ABAP resource planning management in SAP projects
- * @ai-special-cases Local persistence, fallback storage, and Supabase synchronization
+ * Main store for SAP application state management
+ * Manages global state of CSV data, assignments and filters
+ * Special cases: Local persistence, fallback storage, and Supabase synchronization
  */
 interface AppStore extends AppState {
   // Actions
@@ -202,13 +201,33 @@ export const createAppStore = () =>
           set({ loading: true });
 
           try {
-            // Use local calculation instead of API call
-            const newAssignedData = calculateAssignments(csvData, planType);
-
+            const assignedData = calculateAssignments(csvData, planType);
             set({
-              assignedData: newAssignedData,
+              assignedData,
               loading: false,
             });
+
+            // Update metrics
+            const metrics: MetricsData = {
+              total_projects: csvData.length,
+              total_tasks: csvData.length,
+              assigned_tasks: assignedData.filter(
+                (item: Record<string, unknown>) =>
+                  item.abap_asignado &&
+                  item.abap_asignado !== '' &&
+                  item.abap_asignado !== 'None' &&
+                  item.abap_asignado !== 'nan'
+              ).length,
+              unassigned_tasks: assignedData.filter(
+                (item: Record<string, unknown>) =>
+                  !item.abap_asignado ||
+                  item.abap_asignado === '' ||
+                  item.abap_asignado === 'None' ||
+                  item.abap_asignado === 'nan'
+              ).length,
+            };
+
+            set({ metrics });
           } catch (error) {
             set({ loading: false });
             logError(
@@ -225,13 +244,13 @@ export const createAppStore = () =>
           }
         },
 
-        updateFilters: newFilters => {
-          set(state => ({
-            filters: { ...state.filters, ...newFilters },
+        updateFilters: (filters: Partial<FilterState>) => {
+          set((state) => ({
+            filters: { ...state.filters, ...filters },
           }));
         },
 
-        setPlanType: planType => {
+        setPlanType: (planType: string) => {
           set({ planType });
         },
 
@@ -251,16 +270,15 @@ export const createAppStore = () =>
           set({
             csvData: [],
             assignedData: [],
-            timelineData: [],
             metrics: initialMetrics,
+            timelineData: [],
             csvMetadata: undefined,
           });
         },
 
         fetchCSVMetadata: async () => {
-          // Add debounce to prevent multiple rapid calls
           const now = Date.now();
-          const DEBOUNCE_DELAY = 1000; // 1 second
+          const DEBOUNCE_DELAY = 5000; // 5 seconds
 
           if (now - lastMetadataCall < DEBOUNCE_DELAY) {
             return;
@@ -272,6 +290,7 @@ export const createAppStore = () =>
             const result = await auditedFetch<{
               success: boolean;
               metadata?: CSVMetadata;
+              error?: string;
             }>('/api/csv-metadata', {
               method: 'GET',
               component: 'Store.fetchCSVMetadata',
@@ -281,7 +300,6 @@ export const createAppStore = () =>
               set({ csvMetadata: result.metadata });
             }
           } catch (error) {
-            // Silently fail - metadata is optional
             logError(
               {
                 type: 'network',
@@ -299,169 +317,116 @@ export const createAppStore = () =>
           set({ csvMetadata: metadata });
         },
 
-        // Load fallback data if available and fresh
-        loadFallbackData: () => {
-          try {
-            const fallbackData = getFallbackData();
-
-            if (fallbackData && isFallbackDataFresh()) {
-              set({
-                csvData: fallbackData.csvData,
-                csvMetadata: fallbackData.metadata as unknown as
-                  | CSVMetadata
-                  | undefined,
-              });
-
-              // Don't trigger resource assignment here - let the page useEffect handle it
-              // This prevents duplicate calls
-            }
-          } catch (error) {
-            logError(
-              {
-                type: 'storage',
-                message: 'Failed to load fallback data',
-                details: error,
-                timestamp: Date.now(),
-                userFriendly: false,
-              },
-              'Store'
-            );
-          }
-        },
-
-        // Load cached data from localStorage
-        loadCachedData: () => {
-          try {
-            if (typeof window === 'undefined') {
-              return false;
-            }
-
-            const cached = localStorage.getItem('bluesap-csv-cache');
-
-            if (!cached) {
-              return false;
-            }
-
-            const { data, metadata, timestamp } = JSON.parse(cached);
-            const now = Date.now();
-            const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes (increased from 5)
-
-            if (now - timestamp < CACHE_DURATION && data && data.length > 0) {
-              set({ csvData: data, csvMetadata: metadata });
-              return true;
-            } else {
-              // Clear expired cache
-              localStorage.removeItem('bluesap-csv-cache');
-              return false;
-            }
-          } catch {
-            // Clear corrupted cache
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('bluesap-csv-cache');
-            }
-            return false;
-          }
-        },
-
-        // Save data to cache
-        saveToCache: (
-          data: Array<Record<string, unknown>>,
-          metadata: Record<string, unknown>
-        ) => {
-          try {
-            if (typeof window === 'undefined') return;
-
-            const cacheData = {
-              data,
-              metadata,
-              timestamp: Date.now(),
-            };
-
-            localStorage.setItem(
-              'bluesap-csv-cache',
-              JSON.stringify(cacheData)
-            );
-          } catch {
-            // Silently fail - cache is optional
-          }
-        },
-
-        // Clear cache
-        clearCache: () => {
-          try {
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('bluesap-csv-cache');
-            }
-          } catch {
-            // Silently fail
-          }
-        },
-
-        // Sync data to Supabase when available
         syncToSupabase: async () => {
-          const { csvData } = get();
+          const { assignedData } = get();
 
-          if (!csvData || csvData.length === 0) {
+          if (!assignedData || assignedData.length === 0) {
             return false;
           }
 
-          try {
-            // Use the dedicated sync endpoint
-            const result = await auditedFetch<{ success: boolean }>(
-              '/api/sync-to-supabase',
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  data: csvData,
-                }),
-                component: 'Store.syncToSupabase',
-              }
-            );
+          set({ loading: true });
 
-            if (result.success) {
-              // Data successfully synced to Supabase
-              return true;
-            }
+          try {
+            const result = await auditedFetch<{
+              success: boolean;
+              error?: string;
+            }>('/api/sync-to-supabase', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                data: assignedData,
+              }),
+              component: 'Store.syncToSupabase',
+            });
+
+            set({ loading: false });
+            return result.success;
           } catch (error) {
-            // Supabase still not available, keep using fallback
+            set({ loading: false });
             logError(
               {
                 type: 'network',
                 message: 'Supabase sync failed',
                 details: error,
                 timestamp: Date.now(),
-                userFriendly: false,
+                userFriendly: true,
               },
               'Store'
             );
+            return false;
           }
-
-          return false;
         },
 
-        setCSVData: csvData => {
+        loadFallbackData: () => {
+          const fallbackData = getFallbackData();
+          if (fallbackData && isFallbackDataFresh()) {
+            set({
+              csvData: fallbackData.csvData,
+              assignedData: fallbackData.csvData,
+            });
+          }
+        },
+
+        setCSVData: (csvData: Array<Record<string, unknown>>) => {
           set({ csvData });
         },
 
-        // Rehydration callback
-        onRehydrateStorage: () => () => {
-          // Store rehydrated successfully
+        loadCachedData: () => {
+          const cached = localStorage.getItem('bluesap_cached_data');
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              const { data, metadata, timestamp } = parsed;
+
+              // Check if cache is fresh (24 hours)
+              const isFresh = Date.now() - timestamp < 24 * 60 * 60 * 1000;
+
+              if (isFresh && data && data.length > 0) {
+                set({
+                  csvData: data,
+                  assignedData: data,
+                  csvMetadata: metadata,
+                });
+                return true;
+              }
+            } catch (error) {
+              console.error('Failed to load cached data:', error);
+            }
+          }
+          return false;
+        },
+
+        saveToCache: (
+          data: Array<Record<string, unknown>>,
+          metadata: Record<string, unknown>
+        ) => {
+          try {
+            const cacheData = {
+              data,
+              metadata,
+              timestamp: Date.now(),
+            };
+            localStorage.setItem('bluesap_cached_data', JSON.stringify(cacheData));
+          } catch (error) {
+            console.error('Failed to save to cache:', error);
+          }
+        },
+
+        clearCache: () => {
+          try {
+            localStorage.removeItem('bluesap_cached_data');
+          } catch (error) {
+            console.error('Failed to clear cache:', error);
+          }
         },
       }),
       {
         name: 'bluesap-store',
-        partialize: state => ({
-          csvData: state.csvData,
+        partialize: (state) => ({
           filters: state.filters,
-          loading: state.loading,
           planType: state.planType,
-          metrics: state.metrics,
-          timelineData: state.timelineData,
-          csvMetadata: state.csvMetadata,
-          assignedData: state.assignedData,
         }),
       }
     )
