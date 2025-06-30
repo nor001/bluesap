@@ -15,17 +15,6 @@ function isWorkingDay(date: Date, holidays: Record<string, string>): boolean {
   return !isWeekend && !isHolidayDate;
 }
 
-function getNextWorkingDay(date: Date, holidays: Record<string, string>): Date {
-  const nextDay = new Date(date);
-  nextDay.setDate(nextDay.getDate() + 1);
-
-  while (!isWorkingDay(nextDay, holidays)) {
-    nextDay.setDate(nextDay.getDate() + 1);
-  }
-
-  return nextDay;
-}
-
 interface ABAPResource {
   name: string;
   availableHours: number;
