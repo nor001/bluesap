@@ -6,15 +6,6 @@ function isHoliday(date: Date, holidays: Record<string, string>): boolean {
   return dateStr in holidays;
 }
 
-function isWorkingDay(date: Date, holidays: Record<string, string>): boolean {
-  const dayOfWeek = date.getDay();
-  // 0 = Sunday, 6 = Saturday
-  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-  const isHolidayDate = isHoliday(date, holidays);
-
-  return !isWeekend && !isHolidayDate;
-}
-
 interface ABAPResource {
   name: string;
   availableHours: number;
