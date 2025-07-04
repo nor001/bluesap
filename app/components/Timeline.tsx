@@ -56,7 +56,7 @@ export function Timeline({ data, planConfig }: TimelineProps) {
         );
       })
       .map((item) => ({
-        Task: String(item.id || item.proyecto || 'Unknown Task'),
+        Task: String(item.id || item.project || 'Unknown Task'),
         Resource: String(item[planConfig.resource_col]),
         start: new Date(item[planConfig.start_date_col] as string).toISOString(),
         end: new Date(item[planConfig.end_date_col] as string).toISOString(),

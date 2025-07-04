@@ -1,4 +1,5 @@
 import { PlanConfig } from './types';
+import { CSV_COLUMNS } from './types/csv-columns';
 
 // Helper functions for assignment calculation
 function _isHoliday(date: Date, holidays: Record<string, string>): boolean {
@@ -26,79 +27,75 @@ interface ProjectTask {
 }
 
 /**
- * Calculates optimal resource assignments for SAP projects
- * Special cases: Handles different plan types, resource availability, and skill matching
+ * Calculate resource assignments using centralized column configuration
+ * @ai-function Calculates resource assignments using centralized column names
+ * @ai-returns Array of assigned data with resource assignments
  */
 export function calculateAssignments(
   csvData: Array<Record<string, unknown>>,
   planType: string
 ): Array<Record<string, unknown>> {
-  if (!csvData || csvData.length === 0) {
-    return [];
-  }
-
-  // Get plan configuration based on type
   const planConfig = getPlanConfiguration(planType);
   
-  // Extract and validate ABAP resources
-  const abapResources = extractABAPResources(csvData, planConfig);
+  // Extract resources using centralized column names
+  const resources = extractABAPResources(csvData, planConfig);
   
-  // Extract project tasks
-  const projectTasks = extractProjectTasks(csvData, planConfig);
+  // Extract tasks using centralized column names
+  const tasks = extractProjectTasks(csvData, planConfig);
   
-  // Perform assignment calculation
-  const assignments = performResourceAssignment(projectTasks, abapResources, planConfig);
+  // Perform assignment
+  const assignedTasks = performResourceAssignment(tasks, resources, planConfig);
   
   // Convert back to original format
-  return convertToOriginalFormat(assignments, csvData);
+  return convertToOriginalFormat(assignedTasks, csvData);
 }
 
 /**
- * Get plan configuration based on plan type
+ * Get plan configuration with centralized column names
  */
 function getPlanConfiguration(planType: string): PlanConfig {
   const configs: Record<string, PlanConfig> = {
     'Plan de Desarrollo': {
-      start_date_col: 'plan_abap_dev_ini',
-      end_date_col: 'plan_abap_dev_fin',
-      resource_col: 'abap_asignado',
-      hours_col: 'plan_abap_dev_time',
+      resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+      hours_col: CSV_COLUMNS.ABAP_DEVELOPMENT_TIME,
+      available_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+      plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+      start_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_START,
+      end_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_END,
       resource_title: 'ABAP Developer',
       resources_title: 'ABAP Developers',
-      assigned_title: 'Asignado',
-      available_date_col: 'esfu_disponible',
-      plan_date_col: 'plan_abap_dev_ini',
-      use_group_based_assignment: false,
-      module_col: 'modulo',
-      project_col: 'proyecto',
+      assigned_title: 'ABAP Assigned',
+      use_group_based_assignment: true,
+      module_col: CSV_COLUMNS.MODULE,
+      project_col: CSV_COLUMNS.PROJECT,
     },
     'Plan de PU': {
-      start_date_col: 'plan_abap_pu_ini',
-      end_date_col: 'plan_abap_pu_fin',
-      resource_col: 'abap_asignado',
-      hours_col: 'plan_abap_pu_time',
-      resource_title: 'ABAP PU',
-      resources_title: 'ABAP PUs',
-      assigned_title: 'Asignado',
-      available_date_col: 'esfu_disponible',
-      plan_date_col: 'plan_abap_pu_ini',
+      resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+      hours_col: CSV_COLUMNS.ABAP_DEVELOPMENT_TIME,
+      available_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+      plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+      start_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_START,
+      end_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_END,
+      resource_title: 'ABAP Developer',
+      resources_title: 'ABAP Developers',
+      assigned_title: 'ABAP Assigned',
       use_group_based_assignment: false,
-      module_col: 'modulo',
-      project_col: 'proyecto',
+      module_col: CSV_COLUMNS.MODULE,
+      project_col: CSV_COLUMNS.PROJECT,
     },
     'Plan de Test': {
-      start_date_col: 'available_test_date',
-      end_date_col: 'available_test_date',
-      resource_col: 'abap_asignado',
-      hours_col: 'plan_abap_dev_time',
+      resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+      hours_col: CSV_COLUMNS.ABAP_TEST_TIME,
+      available_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+      plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+      start_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_END,
+      end_date_col: CSV_COLUMNS.ACTUAL_ABAP_DEV_END,
       resource_title: 'ABAP Test',
       resources_title: 'ABAP Testers',
-      assigned_title: 'Asignado',
-      available_date_col: 'esfu_disponible',
-      plan_date_col: 'available_test_date',
+      assigned_title: 'ABAP Assigned',
       use_group_based_assignment: false,
-      module_col: 'modulo',
-      project_col: 'proyecto',
+      module_col: CSV_COLUMNS.MODULE,
+      project_col: CSV_COLUMNS.PROJECT,
     },
   };
 
@@ -117,7 +114,7 @@ function extractABAPResources(
   csvData.forEach((row) => {
     const resourceName = String(row[planConfig.resource_col] || '');
     const availableHours = Number(row[planConfig.available_date_col]) || 0;
-    const grupo = String(row.grupo_dev || '');
+    const grupo = String(row[CSV_COLUMNS.GROUP] || '');
 
     if (resourceName && resourceName !== '' && resourceName !== 'None' && resourceName !== 'nan') {
       if (!resourceMap.has(resourceName)) {
@@ -189,19 +186,19 @@ function calculatePriority(row: Record<string, unknown>): number {
   let priority = 0;
 
   // Higher priority for projects with specific modules
-  const moduleName = String(row.modulo || '').toLowerCase();
+  const moduleName = String(row[CSV_COLUMNS.MODULE] || '').toLowerCase();
   if (moduleName.includes('core') || moduleName.includes('critical')) {
     priority += 10;
   }
 
   // Higher priority for projects with more hours
-  const hours = Number(row.plan_abap_dev_time) || 0;
+  const hours = Number(row[CSV_COLUMNS.ABAP_DEVELOPMENT_TIME]) || 0;
   if (hours > 40) {
     priority += 5;
   }
 
   // Higher priority for projects starting soon
-  const startDate = new Date(row.plan_abap_dev_ini as string);
+  const startDate = new Date(row[CSV_COLUMNS.PLANNED_ABAP_DEV_START] as string);
   const daysUntilStart = Math.ceil((startDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
   if (daysUntilStart <= 7) {
     priority += 15;

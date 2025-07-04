@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { CSV_BUCKET_NAME } from '@/lib/supabase';
+import { ERROR_MESSAGES } from '@/lib/types/error-messages';
+import { STATUS_CODES } from '@/lib/types/status-codes';
+import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {
@@ -17,7 +19,7 @@ export async function POST() {
             hasServiceKey: !!supabaseServiceKey,
           },
         },
-        { status: 400 }
+        { status: STATUS_CODES.BAD_REQUEST }
       );
     }
 
@@ -37,10 +39,10 @@ export async function POST() {
       return NextResponse.json(
         {
           success: false,
-          error: 'Error al listar buckets',
+          error: ERROR_MESSAGES.BUCKET_LIST_ERROR,
           details: bucketsError.message,
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -68,10 +70,10 @@ export async function POST() {
       return NextResponse.json(
         {
           success: false,
-          error: 'Error al crear bucket',
+          error: ERROR_MESSAGES.BUCKET_CREATE_ERROR,
           details: createError.message,
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -117,10 +119,10 @@ export async function POST() {
     return NextResponse.json(
       {
         success: false,
-        error: 'Error inesperado',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        error: ERROR_MESSAGES.UNEXPECTED_ERROR,
+        details: error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 }

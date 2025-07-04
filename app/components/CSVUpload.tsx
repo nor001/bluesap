@@ -1,19 +1,9 @@
 'use client';
 
 import { useAppStore } from '@/lib/store';
-import Papa from 'papaparse';
-import React, { useCallback, useState } from 'react';
-
-interface SAPProjectData {
-  fecha_inicio: string;
-  fecha_fin: string;
-  responsable: string;
-  duracion: number;
-  proyecto?: string;
-  modulo?: string;
-  grupo_dev?: string;
-  [key: string]: unknown;
-}
+import { useState } from 'react';
+import { API_ROUTES } from '../lib/types/api-routes';
+import { ERROR_MESSAGES } from '../lib/types/error-messages';
 
 /**
  * Component for uploading and processing SAP project CSV files
@@ -50,51 +40,32 @@ export function CSVUpload() {
 
       validateSAPCSVFile(file);
 
-      // Parse CSV with Papa Parse for SAP project data
-      const parseSAPCSVData = (file: File): Promise<SAPProjectData[]> => {
-        return new Promise((resolve, reject) => {
-          Papa.parse(file, {
-            header: true,
-            skipEmptyLines: true,
-            complete: (results) => {
-              if (results.errors.length > 0) {
-                reject(new Error(`Error al procesar CSV: ${results.errors[0].message}`));
-                return;
-              }
-              resolve(results.data as SAPProjectData[]);
-            },
-            error: (error) => {
-              reject(new Error(`Error de parsing: ${error.message}`));
-            }
-          });
-        });
-      };
+      // Upload file to backend for processing
+      const formData = new FormData();
+      formData.append('csv', file);
 
-      const parsedCSVData = await parseSAPCSVData(file);
+      const response = await fetch(API_ROUTES.UPLOAD, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || ERROR_MESSAGES.FILE_PROCESSING_ERROR);
+      }
+
+      const result = await response.json();
       
-      // Validate SAP project data structure
-      const validateSAPProjectData = (data: SAPProjectData[]): void => {
-        if (data.length === 0) {
-          throw new Error('El archivo CSV está vacío o no contiene datos válidos.');
-        }
-
-        const requiredColumns = ['fecha_inicio', 'fecha_fin', 'responsable', 'duracion'];
-        const firstRow = data[0];
-        const missingColumns = requiredColumns.filter(col => !(col in firstRow));
-        
-        if (missingColumns.length > 0) {
-          throw new Error(`Columnas requeridas faltantes: ${missingColumns.join(', ')}`);
-        }
-      };
-
-      validateSAPProjectData(parsedCSVData);
+      if (!result.success) {
+        throw new Error(result.error || ERROR_MESSAGES.FILE_PROCESSING_ERROR);
+      }
 
       // Upload processed SAP project data
-      await uploadParsedCSVData(parsedCSVData);
+      await uploadParsedCSVData(result.data);
       setUploadStatus('success');
       
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Error desconocido');
+      setErrorMessage(error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR);
       setUploadStatus('error');
     } finally {
       setIsUploading(false);

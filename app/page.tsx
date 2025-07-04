@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import { Timeline } from '@/components/Timeline';
 import { useAppStore } from '@/lib/store';
 import { useEffect, useState } from 'react';
+import { CSV_COLUMNS } from '@/lib/types/csv-columns';
 
 /**
  * Main application page for SAP project management
@@ -70,46 +71,46 @@ export default function HomePage() {
   const getPlanConfig = () => {
     const configs = {
       'Plan de Desarrollo': {
-        start_date_col: 'plan_abap_dev_ini',
-        end_date_col: 'plan_abap_dev_fin',
-        resource_col: 'abap_asignado',
-        hours_col: 'plan_abap_dev_time',
+        start_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+        end_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+        resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+        hours_col: CSV_COLUMNS.ABAP_DEVELOPMENT_TIME,
         resource_title: 'ABAP Developer',
         resources_title: 'ABAP Developers',
         assigned_title: 'Asignado',
-        available_date_col: 'esfu_disponible',
-        plan_date_col: 'plan_abap_dev_ini',
+        available_date_col: CSV_COLUMNS.EFFORT_READY_DATE,
+        plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
         use_group_based_assignment: false,
-        module_col: 'modulo',
-        project_col: 'proyecto',
+        module_col: CSV_COLUMNS.MODULE,
+        project_col: CSV_COLUMNS.PROJECT,
       },
       'Plan de PU': {
-        start_date_col: 'plan_abap_pu_ini',
-        end_date_col: 'plan_abap_pu_fin',
-        resource_col: 'abap_asignado',
-        hours_col: 'plan_abap_pu_time',
+        start_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+        end_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+        resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+        hours_col: CSV_COLUMNS.ABAP_TEST_TIME,
         resource_title: 'ABAP PU',
         resources_title: 'ABAP PUs',
         assigned_title: 'Asignado',
-        available_date_col: 'esfu_disponible',
-        plan_date_col: 'plan_abap_pu_ini',
+        available_date_col: CSV_COLUMNS.EFFORT_READY_DATE,
+        plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
         use_group_based_assignment: false,
-        module_col: 'modulo',
-        project_col: 'proyecto',
+        module_col: CSV_COLUMNS.MODULE,
+        project_col: CSV_COLUMNS.PROJECT,
       },
       'Plan de Test': {
-        start_date_col: 'available_test_date',
-        end_date_col: 'available_test_date',
-        resource_col: 'abap_asignado',
-        hours_col: 'plan_abap_dev_time',
+        start_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+        end_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+        resource_col: CSV_COLUMNS.ABAP_ASSIGNED,
+        hours_col: CSV_COLUMNS.ABAP_TEST_TIME,
         resource_title: 'ABAP Test',
         resources_title: 'ABAP Testers',
         assigned_title: 'Asignado',
-        available_date_col: 'esfu_disponible',
-        plan_date_col: 'available_test_date',
+        available_date_col: CSV_COLUMNS.EFFORT_READY_DATE,
+        plan_date_col: CSV_COLUMNS.PLANNED_ABAP_DEV_START,
         use_group_based_assignment: false,
-        module_col: 'modulo',
-        project_col: 'proyecto',
+        module_col: CSV_COLUMNS.MODULE,
+        project_col: CSV_COLUMNS.PROJECT,
       },
     };
 
@@ -123,19 +124,19 @@ export default function HomePage() {
     }
 
     return assignedData.filter((item: Record<string, unknown>) => {
-      const project = String(item.proyecto || '');
-      const moduleName = String(item.modulo || '');
-      const grupo = String(item.grupo_dev || '');
-      const id = String(item.id || '');
-      const consultant = String(item.consultor_ntt || '');
+      const project = String(item[CSV_COLUMNS.PROJECT] || '');
+      const moduleName = String(item[CSV_COLUMNS.MODULE] || '');
+      const group = String(item[CSV_COLUMNS.GROUP] || '');
+      const id = String(item[CSV_COLUMNS.ID] || '');
+      const consultant = String(item[CSV_COLUMNS.FUNCTIONAL_ASSIGNED] || '');
 
-      const projectMatch = filters.selected_proy === 'Todos' || project === filters.selected_proy;
-      const moduleMatch = filters.selected_modulo === 'Todos' || moduleName === filters.selected_modulo;
-      const grupoMatch = filters.selected_grupo === 'Todos' || grupo === filters.selected_grupo;
-      const idMatch = !filters.id_filter || id.includes(filters.id_filter);
-      const consultantMatch = filters.consultor_ntt === 'Todos' || consultant === filters.consultor_ntt;
+      const projectMatch = filters.selectedProject === 'Todos' || project === filters.selectedProject;
+      const moduleMatch = filters.selectedModule === 'Todos' || moduleName === filters.selectedModule;
+      const groupMatch = filters.selectedGroup === 'Todos' || group === filters.selectedGroup;
+      const idMatch = !filters.idFilter || id.includes(filters.idFilter);
+      const consultantMatch = filters.functionalAssigned === 'Todos' || consultant === filters.functionalAssigned;
 
-      return projectMatch && moduleMatch && grupoMatch && idMatch && consultantMatch;
+      return projectMatch && moduleMatch && groupMatch && idMatch && consultantMatch;
     });
   };
 
@@ -225,7 +226,7 @@ export default function HomePage() {
                   </p>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     <p>Formatos soportados: CSV con datos de proyectos SAP</p>
-                    <p>Columnas esperadas: proyecto, modulo, grupo_dev, plan_abap_dev_time, etc.</p>
+                    <p>Columnas esperadas: project, module, group, abapDevelopmentTime, etc.</p>
                   </div>
                 </div>
               </div>

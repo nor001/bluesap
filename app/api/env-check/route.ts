@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { ERROR_MESSAGES } from '@/lib/types/error-messages';
 import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -50,9 +51,9 @@ export async function GET() {
     } catch {
       return NextResponse.json({
         success: false,
-        error: 'Database connection failed',
+        error: ERROR_MESSAGES.CONNECTION_TIMEOUT,
         details: {
-          error: 'Connection timeout or network error',
+          error: ERROR_MESSAGES.CONNECTION_TIMEOUT,
         },
       });
     }

@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { downloadFileFromSupabase, getCSVMetadata } from '@/lib/supabase';
+import { convertToCSV } from '@/lib/csv-processor';
 import { getFallbackData } from '@/lib/fallback-storage';
-import { convertToSimpleCSV } from '@/lib/csv-processor';
+import { downloadFileFromSupabase, getCSVMetadata } from '@/lib/supabase';
+import { STATUS_CODES } from '@/lib/types/status-codes';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -45,7 +46,7 @@ export async function GET() {
 
     if (fallback && fallback.csvData && fallback.csvData.length > 0) {
       try {
-        const csvContent = convertToSimpleCSV(fallback.csvData);
+        const csvContent = convertToCSV(fallback.csvData as any);
 
         return NextResponse.json({
           success: true,
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: false,
         error: 'Invalid action',
       },
-      { status: 400 }
+      { status: STATUS_CODES.BAD_REQUEST }
     );
   } catch {
     return NextResponse.json(
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: false,
         error: 'Failed to process request',
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 }

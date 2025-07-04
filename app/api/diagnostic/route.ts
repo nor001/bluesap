@@ -1,4 +1,7 @@
 import { logError } from '@/lib/error-handler';
+import { CSV_COLUMNS } from '@/lib/types/csv-columns';
+import { ERROR_MESSAGES } from '@/lib/types/error-messages';
+import { STATUS_CODES } from '@/lib/types/status-codes';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -19,7 +22,7 @@ export async function GET(_request: NextRequest) {
           error: envCheck.error,
           timestamp: new Date().toISOString()
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -33,7 +36,7 @@ export async function GET(_request: NextRequest) {
           error: connectionTest.error,
           timestamp: new Date().toISOString()
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -47,7 +50,7 @@ export async function GET(_request: NextRequest) {
           error: businessTest.error,
           timestamp: new Date().toISOString()
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
@@ -78,10 +81,10 @@ export async function GET(_request: NextRequest) {
       { 
         success: false, 
         step: 'general_error', 
-        error: error instanceof Error ? error.message : 'Internal server error',
+        error: error instanceof Error ? error.message : ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         timestamp: new Date().toISOString()
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 }
@@ -149,7 +152,7 @@ async function testServiceConnections() {
   } catch (error) {
     return {
       success: false,
-      error: `Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Connection test failed: ${error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR}`,
       details: null
     };
   }
@@ -162,21 +165,26 @@ async function testServiceConnections() {
 function testBusinessLogic() {
   try {
     // Test CSV processing logic
-    const testCSVData = [
+    const sampleData = [
       {
-        fecha_inicio: '2024-01-01',
-        fecha_fin: '2024-01-31',
-        responsable: 'ABAP_DEV_1',
-        duracion: 40,
-        proyecto: 'TEST_PROJECT',
-        modulo: 'FI',
-        grupo_dev: 'GROUP_A'
+        [CSV_COLUMNS.PLANNED_ABAP_DEV_START]: '2024-01-01',
+        [CSV_COLUMNS.PLANNED_ABAP_DEV_END]: '2024-01-31',
+        [CSV_COLUMNS.ABAP_ASSIGNED]: 'ABAP_DEV_1',
+        [CSV_COLUMNS.ABAP_DEVELOPMENT_TIME]: 40,
+        [CSV_COLUMNS.PROJECT]: 'TEST_PROJECT',
+        [CSV_COLUMNS.MODULE]: 'FI',
+        [CSV_COLUMNS.GROUP]: 'GROUP_A'
       }
     ];
 
-    // Validate required columns
-    const requiredColumns = ['fecha_inicio', 'fecha_fin', 'responsable', 'duracion'];
-    const firstRow = testCSVData[0];
+    // Validate required columns using centralized configuration
+    const requiredColumns = [
+      CSV_COLUMNS.PLANNED_ABAP_DEV_START,
+      CSV_COLUMNS.PLANNED_ABAP_DEV_END,
+      CSV_COLUMNS.ABAP_ASSIGNED,
+      CSV_COLUMNS.ABAP_DEVELOPMENT_TIME
+    ];
+    const firstRow = sampleData[0];
     const missingColumns = requiredColumns.filter(col => !(col in firstRow));
     
     if (missingColumns.length > 0) {
@@ -187,9 +195,9 @@ function testBusinessLogic() {
       };
     }
 
-    // Test date parsing
-    const startDate = new Date(firstRow.fecha_inicio);
-    const endDate = new Date(firstRow.fecha_fin);
+    // Test date parsing using centralized column names
+    const startDate = new Date(firstRow[CSV_COLUMNS.PLANNED_ABAP_DEV_START]);
+    const endDate = new Date(firstRow[CSV_COLUMNS.PLANNED_ABAP_DEV_END]);
     
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return {
@@ -206,14 +214,14 @@ function testBusinessLogic() {
         csvValidation: 'passed',
         dateParsing: 'passed',
         requiredColumns: requiredColumns,
-        testDataProcessed: testCSVData.length
+        testDataProcessed: sampleData.length
       }
     };
 
   } catch (error) {
     return {
       success: false,
-      error: `Business logic test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      error: `Business logic test failed: ${error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR}`,
       details: null
     };
   }

@@ -1,6 +1,7 @@
 import { isSupabaseAvailable, supabaseClient } from '@/lib/supabase-client';
 import Image from 'next/image';
 import { useState } from 'react';
+import { ERROR_MESSAGES } from '../lib/types/error-messages';
 
 export function SocialLogin() {
   const [error, setError] = useState<string | null>(null);
@@ -14,9 +15,7 @@ export function SocialLogin() {
     try {
       // Verificar si Supabase está disponible
       if (!isSupabaseAvailable()) {
-        setError(
-          'Error de configuración. Por favor, contacta al administrador.'
-        );
+        setError(ERROR_MESSAGES.CONFIG_ERROR);
         setLoading(false);
         return;
       }
@@ -35,7 +34,7 @@ export function SocialLogin() {
         // Redirigir al usuario a la URL de OAuth
         window.location.href = data.url;
       } else {
-        setError('No se pudo iniciar el proceso de autenticación');
+        setError(ERROR_MESSAGES.LOGIN_ERROR);
         setLoading(false);
       }
     } catch (error) {

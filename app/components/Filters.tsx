@@ -3,12 +3,13 @@
 import { useMemo } from 'react';
 import { FilterState } from '@/lib/types';
 import { useAppStore } from '@/lib/store';
+import { CSV_COLUMNS } from '@/lib/types/csv-columns';
 
 interface FiltersProps {
   data: Array<{
-    PROY?: string;
-    Módulo?: string;
-    grupo_dev?: string;
+    [CSV_COLUMNS.PROJECT]?: string;
+    [CSV_COLUMNS.MODULE]?: string;
+    [CSV_COLUMNS.GROUP]?: string;
   }>;
   onFilterChange?: (filters: FilterState) => void;
 }
@@ -19,33 +20,33 @@ export function Filters({ data, onFilterChange }: FiltersProps) {
   const filterOptions = useMemo(() => {
     if (!data || data.length === 0) {
       return {
-        proyOptions: ['Todos'],
-        moduloOptions: ['Todos'],
-        grupoOptions: ['Todos'],
+        projectOptions: ['Todos'],
+        moduleOptions: ['Todos'],
+        groupOptions: ['Todos'],
       };
     }
 
-    const proyOptions = [
+    const projectOptions = [
       'Todos',
-      ...Array.from(new Set(data.map(row => row.PROY).filter(Boolean))).sort(),
+      ...Array.from(new Set(data.map(row => row[CSV_COLUMNS.PROJECT]).filter(Boolean))).sort(),
     ];
-    const moduloOptions = [
+    const moduleOptions = [
       'Todos',
       ...Array.from(
-        new Set(data.map(row => row.Módulo).filter(Boolean))
+        new Set(data.map(row => row[CSV_COLUMNS.MODULE]).filter(Boolean))
       ).sort(),
     ];
 
-    const grupoOptions = data.some(row => row.grupo_dev)
+    const groupOptions = data.some(row => row[CSV_COLUMNS.GROUP])
       ? [
           'Todos',
           ...Array.from(
-            new Set(data.map(row => row.grupo_dev).filter(Boolean))
+            new Set(data.map(row => row[CSV_COLUMNS.GROUP]).filter(Boolean))
           ).sort(),
         ]
       : ['Todos'];
 
-    return { proyOptions, moduloOptions, grupoOptions };
+    return { projectOptions, moduleOptions, groupOptions };
   }, [data]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -64,18 +65,18 @@ export function Filters({ data, onFilterChange }: FiltersProps) {
         {/* Project Filter */}
         <div>
           <label
-            htmlFor="proy-filter"
+            htmlFor="project-filter"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
-            Project (PROY):
+            Project:
           </label>
           <select
-            id="proy-filter"
-            value={filters.selected_proy}
-            onChange={e => handleFilterChange('selected_proy', e.target.value)}
+            id="project-filter"
+            value={filters.selectedProject}
+            onChange={e => handleFilterChange('selectedProject', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
-            {filterOptions.proyOptions.map(option => (
+            {filterOptions.projectOptions.map(option => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -86,20 +87,18 @@ export function Filters({ data, onFilterChange }: FiltersProps) {
         {/* Module Filter */}
         <div>
           <label
-            htmlFor="modulo-filter"
+            htmlFor="module-filter"
             className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
           >
             Module:
           </label>
           <select
-            id="modulo-filter"
-            value={filters.selected_modulo}
-            onChange={e =>
-              handleFilterChange('selected_modulo', e.target.value)
-            }
+            id="module-filter"
+            value={filters.selectedModule}
+            onChange={e => handleFilterChange('selectedModule', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
-            {filterOptions.moduloOptions.map(option => (
+            {filterOptions.moduleOptions.map(option => (
               <option key={option} value={option}>
                 {option}
               </option>
@@ -108,23 +107,21 @@ export function Filters({ data, onFilterChange }: FiltersProps) {
         </div>
 
         {/* Group Filter */}
-        {filterOptions.grupoOptions.length > 1 && (
+        {filterOptions.groupOptions.length > 1 && (
           <div>
             <label
-              htmlFor="grupo-filter"
+              htmlFor="group-filter"
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
             >
               Development Group:
             </label>
             <select
-              id="grupo-filter"
-              value={filters.selected_grupo}
-              onChange={e =>
-                handleFilterChange('selected_grupo', e.target.value)
-              }
+              id="group-filter"
+              value={filters.selectedGroup}
+              onChange={e => handleFilterChange('selectedGroup', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              {filterOptions.grupoOptions.map(option => (
+              {filterOptions.groupOptions.map(option => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -144,8 +141,8 @@ export function Filters({ data, onFilterChange }: FiltersProps) {
           <input
             type="text"
             id="id-filter"
-            value={filters.id_filter}
-            onChange={e => handleFilterChange('id_filter', e.target.value)}
+            value={filters.idFilter}
+            onChange={e => handleFilterChange('idFilter', e.target.value)}
             placeholder="Enter ID to filter..."
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />

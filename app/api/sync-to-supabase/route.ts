@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
 import {
-  uploadFileToSupabase,
-  updateCSVMetadata,
-  CSV_FILE_NAME,
-} from '@/lib/supabase';
-import {
-  convertToOriginalCSVFormat,
-  createCSVMetadata,
+    convertToCSV,
+    createCSVMetadata,
 } from '@/lib/csv-processor';
+import {
+    CSV_FILE_NAME,
+    updateCSVMetadata,
+    uploadFileToSupabase,
+} from '@/lib/supabase';
+import { ROLES } from '@/lib/types/roles';
+import { STATUS_CODES } from '@/lib/types/status-codes';
+import { NextRequest, NextResponse } from 'next/server';
 
 interface SyncResponse {
   success: boolean;
@@ -26,15 +28,15 @@ export async function POST(
           success: false,
           error: 'No valid data provided',
         },
-        { status: 400 }
+        { status: STATUS_CODES.BAD_REQUEST }
       );
     }
 
-    // Convert processed data back to original CSV format
-    const originalFormat = convertToOriginalCSVFormat(data);
+    // Convert processed data back to CSV format
+    const csvFormat = convertToCSV(data as any);
 
-    // Create a File object from the original format
-    const blob = new Blob([originalFormat], { type: 'text/csv' });
+    // Create a File object from the CSV format
+    const blob = new Blob([csvFormat], { type: 'text/csv' });
     const file = new File([blob], CSV_FILE_NAME, { type: 'text/csv' });
 
     // Try to upload to Supabase Storage
@@ -45,7 +47,7 @@ export async function POST(
       const metadataToUpdate = createCSVMetadata(
         data,
         file.size,
-        'user (synced)'
+        ROLES.USER
       );
 
       const metadataUpdated = await updateCSVMetadata(metadataToUpdate);
@@ -62,7 +64,7 @@ export async function POST(
         success: false,
         error: 'Failed to sync to Supabase',
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   } catch (error) {
     return NextResponse.json(
@@ -70,7 +72,7 @@ export async function POST(
         success: false,
         error: error instanceof Error ? error.message : 'Sync failed',
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 }

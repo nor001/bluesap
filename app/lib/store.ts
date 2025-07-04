@@ -5,12 +5,13 @@ import { auditedFetch } from './auditedFetch';
 import { logError } from './error-handler';
 import { getFallbackData, isFallbackDataFresh } from './fallback-storage';
 import {
-  AppState,
-  CSVMetadata,
-  FilterState,
-  MetricsData,
-  TimelineData,
+    AppState,
+    CSVMetadata,
+    FilterState,
+    MetricsData,
+    TimelineData,
 } from './types';
+import { API_ROUTES } from './types/api-routes';
 
 /**
  * Main store for SAP application state management
@@ -41,19 +42,25 @@ interface AppStore extends AppState {
   clearCache: () => void;
 }
 
-const initialFilters: FilterState = {
-  selected_proy: 'Todos',
-  selected_modulo: 'Todos',
-  selected_grupo: 'Todos',
-  id_filter: '',
-  consultor_ntt: 'Todos',
-};
-
-const initialMetrics: MetricsData = {
-  total_projects: 0,
-  total_tasks: 0,
-  assigned_tasks: 0,
-  unassigned_tasks: 0,
+const initialState: AppState = {
+  csvData: [],
+  assignedData: [],
+  filters: {
+    selectedProject: 'Todos',
+    selectedModule: 'Todos',
+    selectedGroup: 'Todos',
+    functionalAssigned: 'Todos',
+    idFilter: '',
+  },
+  loading: false,
+  planType: 'abap',
+  metrics: {
+    totalProjects: 0,
+    totalTasks: 0,
+    assignedTasks: 0,
+    unassignedTasks: 0,
+  },
+  timelineData: [],
 };
 
 // Debounce mechanism for API calls
@@ -77,10 +84,10 @@ export const createAppStore = () =>
         // Initial state
         csvData: [],
         assignedData: [],
-        filters: initialFilters,
+        filters: initialState.filters,
         loading: false,
-        planType: 'Plan de Desarrollo',
-        metrics: initialMetrics,
+        planType: initialState.planType,
+        metrics: initialState.metrics,
         timelineData: [],
         csvMetadata: undefined,
 
@@ -96,10 +103,10 @@ export const createAppStore = () =>
               success: boolean;
               data?: Array<Record<string, unknown>>;
               error?: string;
-            }>('/api/upload', {
-              method: 'POST',
-              body: formData,
-              component: 'Store.uploadCSV',
+            }>(API_ROUTES.UPLOAD, { 
+              method: 'POST', 
+              body: formData, 
+              component: 'Store.uploadCSV' 
             });
 
             if (result.success && result.data) {
@@ -126,7 +133,7 @@ export const createAppStore = () =>
                 timestamp: Date.now(),
                 userFriendly: true,
               },
-              'Store'
+              'Store.uploadCSV'
             );
             throw error;
           }
@@ -140,15 +147,11 @@ export const createAppStore = () =>
               success: boolean;
               data?: Array<Record<string, unknown>>;
               error?: string;
-            }>('/api/upload-parsed', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                data: csvData,
-              }),
-              component: 'Store.uploadParsedCSVData',
+            }>(API_ROUTES.UPLOAD_PARSED, { 
+              method: 'POST', 
+              headers: { 'Content-Type': 'application/json' }, 
+              body: JSON.stringify({ data: csvData }), 
+              component: 'Store.uploadParsedCSVData' 
             });
 
             if (result.success && result.data) {
@@ -175,7 +178,7 @@ export const createAppStore = () =>
                 timestamp: Date.now(),
                 userFriendly: true,
               },
-              'Store'
+              'Store.uploadParsedCSV'
             );
             throw error;
           }
@@ -209,16 +212,16 @@ export const createAppStore = () =>
 
             // Update metrics
             const metrics: MetricsData = {
-              total_projects: csvData.length,
-              total_tasks: csvData.length,
-              assigned_tasks: assignedData.filter(
+              totalProjects: csvData.length,
+              totalTasks: csvData.length,
+              assignedTasks: assignedData.filter(
                 (item: Record<string, unknown>) =>
                   item.abap_asignado &&
                   item.abap_asignado !== '' &&
                   item.abap_asignado !== 'None' &&
                   item.abap_asignado !== 'nan'
               ).length,
-              unassigned_tasks: assignedData.filter(
+              unassignedTasks: assignedData.filter(
                 (item: Record<string, unknown>) =>
                   !item.abap_asignado ||
                   item.abap_asignado === '' ||
@@ -233,12 +236,12 @@ export const createAppStore = () =>
             logError(
               {
                 type: 'processing',
-                message: 'Resource assignment failed',
+                message: 'Assignment failed',
                 details: error,
                 timestamp: Date.now(),
                 userFriendly: true,
               },
-              'Store'
+              'Store.assignResources'
             );
             throw error;
           }
@@ -270,7 +273,7 @@ export const createAppStore = () =>
           set({
             csvData: [],
             assignedData: [],
-            metrics: initialMetrics,
+            metrics: initialState.metrics,
             timelineData: [],
             csvMetadata: undefined,
           });
@@ -291,10 +294,7 @@ export const createAppStore = () =>
               success: boolean;
               metadata?: CSVMetadata;
               error?: string;
-            }>('/api/csv-metadata', {
-              method: 'GET',
-              component: 'Store.fetchCSVMetadata',
-            });
+            }>({ url: API_ROUTES.CSV_METADATA, method: 'GET', component: 'Store.fetchCSVMetadata' });
 
             if (result.success && result.metadata) {
               set({ csvMetadata: result.metadata });
@@ -302,13 +302,13 @@ export const createAppStore = () =>
           } catch (error) {
             logError(
               {
-                type: 'network',
-                message: 'Failed to fetch CSV metadata',
+                type: 'processing',
+                message: 'Download failed',
                 details: error,
                 timestamp: Date.now(),
-                userFriendly: false,
+                userFriendly: true,
               },
-              'Store'
+              'Store.downloadCSV'
             );
           }
         },
@@ -330,16 +330,7 @@ export const createAppStore = () =>
             const result = await auditedFetch<{
               success: boolean;
               error?: string;
-            }>('/api/sync-to-supabase', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                data: assignedData,
-              }),
-              component: 'Store.syncToSupabase',
-            });
+            }>({ url: API_ROUTES.SYNC_TO_SUPABASE, method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data: assignedData }), component: 'Store.syncToSupabase' });
 
             set({ loading: false });
             return result.success;
@@ -347,13 +338,13 @@ export const createAppStore = () =>
             set({ loading: false });
             logError(
               {
-                type: 'network',
+                type: 'processing',
                 message: 'Supabase sync failed',
                 details: error,
                 timestamp: Date.now(),
                 userFriendly: true,
               },
-              'Store'
+              'Store.syncToSupabase'
             );
             return false;
           }

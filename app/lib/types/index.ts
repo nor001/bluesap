@@ -1,4 +1,8 @@
 // Types for SAP Gestion application
+
+// Re-export CSV column types
+export * from './csv-columns';
+
 export interface ResourceConfig {
   level: 'SENIOR' | 'SEMI_SENIOR' | 'PLENO' | 'JUNIOR';
   max_tasks: number;
@@ -20,11 +24,11 @@ export interface PlanConfig {
 }
 
 export interface FilterState {
-  selected_proy: string;
-  selected_modulo: string;
-  selected_grupo: string;
-  id_filter: string;
-  consultor_ntt: string;
+  selectedProject: string;
+  selectedModule: string;
+  selectedGroup: string;
+  functionalAssigned: string;
+  idFilter: string;
 }
 
 export interface TimelineData {
@@ -38,10 +42,10 @@ export interface TimelineData {
 }
 
 export interface MetricsData {
-  total_projects: number;
-  total_tasks: number;
-  assigned_tasks: number;
-  unassigned_tasks: number;
+  totalProjects: number;
+  totalTasks: number;
+  assignedTasks: number;
+  unassignedTasks: number;
 }
 
 export interface AppState {
@@ -95,6 +99,32 @@ export interface MetadataResponse {
   success: boolean;
   metadata?: CSVMetadata;
   error?: string;
+}
+
+export interface CSVRowData {
+  keywords: string;
+  plannedAbapDevStart: string;
+  plannedAbapDevEnd: string;
+  abapAssigned: string;
+  abapDevelopmentTime: string;
+  abapTestTime: string;
+  cpiDevelopmentTime: string;
+  cpiTestTime: string;
+  plannedAbapDevelopmentTime: string;
+  effortReceivedPlan: string;
+  effortReceivedReal: string;
+  effortReadyDate: string;
+  effortExecutionStart: string;
+  effortStatus: string;
+  functionalAssigned: string;
+  actualAbapDevStart: string;
+  actualAbapDevEnd: string;
+  plannedCpiDevStart: string;
+  plannedCpiDevEnd: string;
+  project: string;
+  module: string;
+  group: string;
+  id: string;
 }
 
 // Error types

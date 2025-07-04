@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { isSupabaseAvailable, supabaseClient } from '@/lib/supabase-client';
 import { useRouter } from 'next/navigation';
-import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
+import { useEffect, useState } from 'react';
+import { ERROR_MESSAGES } from '../lib/types/error-messages';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -14,9 +15,7 @@ export default function AuthCallback() {
       setError(null);
 
       if (!isSupabaseAvailable()) {
-        setError(
-          'Error de configuración. Por favor, contacta al administrador.'
-        );
+        setError(ERROR_MESSAGES.CONFIG_ERROR);
         setLoading(false);
         return;
       }
@@ -28,13 +27,13 @@ export default function AuthCallback() {
         } = await supabaseClient!.auth.getUser();
 
         if (userError) {
-          setError(`Error obteniendo usuario: ${userError.message}`);
+          setError(`${ERROR_MESSAGES.USER_ERROR}: ${userError.message}`);
           setLoading(false);
           return;
         }
 
         if (!user || !user.email) {
-          setError('No se pudo obtener el usuario autenticado.');
+          setError(ERROR_MESSAGES.USER_NOT_FOUND);
           setLoading(false);
           return;
         }
@@ -51,7 +50,7 @@ export default function AuthCallback() {
           const errorData = await res.json().catch(() => ({}));
           const errorMsg =
             errorData.error ||
-            'Tu correo no está invitado. Solicita acceso al administrador.';
+            ERROR_MESSAGES.NOT_INVITED;
 
           await supabaseClient!.auth.signOut();
           setError(errorMsg);
@@ -59,7 +58,7 @@ export default function AuthCallback() {
         }
       } catch (error) {
         setError(
-          `Error durante la validación: ${error instanceof Error ? error.message : 'Error desconocido'}`
+          `${ERROR_MESSAGES.VALIDATION_ERROR}: ${error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR}`
         );
         setLoading(false);
       }

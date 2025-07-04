@@ -6,8 +6,8 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
+import { useEffect, useState } from 'react';
 
 export function TestComponent() {
   const [testResults, setTestResults] = useState<string[]>([]);
@@ -37,11 +37,11 @@ export function TestComponent() {
       if (csvData && csvData.length > 0) {
         const firstRow = csvData[0];
         const requiredFields = [
-          'proyecto',
+          'project',
           'tarea',
-          'fecha_inicio',
-          'fecha_fin',
-          'duracion',
+          'plannedAbapDevStart',
+          'plannedAbapDevEnd',
+          'abapDevelopmentTime',
         ];
         const missingFields = requiredFields.filter(
           field => !(field in firstRow)

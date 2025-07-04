@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
+import { CONFIG_KEYS } from './types/config-keys';
 
 // Frontend client - uses public environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env[CONFIG_KEYS.NEXT_PUBLIC_SUPABASE_URL];
+const supabaseAnonKey = process.env[CONFIG_KEYS.NEXT_PUBLIC_SUPABASE_ANON_KEY];
 
 // Check if Supabase is configured for frontend
 const isSupabaseConfigured = supabaseUrl && supabaseAnonKey;

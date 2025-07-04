@@ -1,13 +1,13 @@
 'use client';
 
-import { Moon, Sun, Monitor } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+    <div className="flex items-center space-x-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1" suppressHydrationWarning>
       <button
         onClick={() => setTheme('light')}
         className={`p-2 rounded-md transition-colors ${

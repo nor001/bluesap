@@ -7,7 +7,6 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  swcMinify: false, // Deshabilitado temporalmente para resolver error SWC en Windows
 
   // Configuración ESLint para fallar en errores
   eslint: {

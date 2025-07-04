@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import { ThemeToggle } from './ThemeToggle';
+import { CSV_COLUMNS } from '@/lib/types/csv-columns';
 
 const tabs = [
   { href: '/', label: 'Inicio', icon: '🏠' },
@@ -40,45 +41,45 @@ export default function Sidebar() {
 
     if (!dataToUse || dataToUse.length === 0) {
       return {
-        proyOptions: ['Todos'],
-        moduloOptions: ['Todos'],
-        grupoOptions: ['Todos'],
-        consultorOptions: ['Todos'],
+        projectOptions: ['Todos'],
+        moduleOptions: ['Todos'],
+        groupOptions: ['Todos'],
+        consultantOptions: ['Todos'],
       };
     }
 
-    const proyOptions = [
+    const projectOptions = [
       'Todos',
       ...Array.from(
-        new Set(dataToUse.map(row => row.PROY).filter(Boolean))
+        new Set(dataToUse.map(row => row[CSV_COLUMNS.PROJECT]).filter(Boolean))
       ).sort(),
     ];
-    const moduloOptions = [
+    const moduleOptions = [
       'Todos',
       ...Array.from(
-        new Set(dataToUse.map(row => row.Módulo).filter(Boolean))
+        new Set(dataToUse.map(row => row[CSV_COLUMNS.MODULE]).filter(Boolean))
       ).sort(),
     ];
 
-    const grupoOptions = dataToUse.some(row => row.grupo_dev)
+    const groupOptions = dataToUse.some(row => row[CSV_COLUMNS.GROUP])
       ? [
           'Todos',
           ...Array.from(
-            new Set(dataToUse.map(row => row.grupo_dev).filter(Boolean))
+            new Set(dataToUse.map(row => row[CSV_COLUMNS.GROUP]).filter(Boolean))
           ).sort(),
         ]
       : ['Todos'];
 
-    const consultorOptions = dataToUse.some(row => row['Consultor NTT'])
+    const consultantOptions = dataToUse.some(row => row[CSV_COLUMNS.FUNCTIONAL_ASSIGNED])
       ? [
           'Todos',
           ...Array.from(
-            new Set(dataToUse.map(row => row['Consultor NTT']).filter(Boolean))
+            new Set(dataToUse.map(row => row[CSV_COLUMNS.FUNCTIONAL_ASSIGNED]).filter(Boolean))
           ).sort(),
         ]
       : ['Todos'];
 
-    return { proyOptions, moduloOptions, grupoOptions, consultorOptions };
+    return { projectOptions, moduleOptions, groupOptions, consultantOptions };
   }, [assignedData, csvData]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
@@ -187,17 +188,17 @@ export default function Sidebar() {
           {/* Tabs */}
           <nav className="flex space-x-1">
             {tabs.map(tab => (
-              <Link key={tab.href} href={tab.href} legacyBehavior>
-                <a
-                  className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors border-b-2 ${
-                    pathname === tab.href
-                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 border-blue-500'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent hover:border-gray-300'
-                  }`}
-                >
-                  <span className="mr-2 text-base">{tab.icon}</span>
-                  {tab.label}
-                </a>
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-colors border-b-2 ${
+                  pathname === tab.href
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-200 border-blue-500'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 border-transparent hover:border-gray-300'
+                }`}
+              >
+                <span className="mr-2 text-base">{tab.icon}</span>
+                {tab.label}
               </Link>
             ))}
           </nav>
@@ -251,13 +252,11 @@ export default function Sidebar() {
                   Proyecto:
                 </label>
                 <select
-                  value={filters.selected_proy}
-                  onChange={e =>
-                    handleFilterChange('selected_proy', e.target.value)
-                  }
+                  value={filters.selectedProject}
+                  onChange={e => handleFilterChange('selectedProject', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {filterOptions.proyOptions.map(option => (
+                  {filterOptions.projectOptions.map(option => (
                     <option key={String(option)} value={String(option)}>
                       {String(option)}
                     </option>
@@ -271,13 +270,11 @@ export default function Sidebar() {
                   Módulo:
                 </label>
                 <select
-                  value={filters.selected_modulo}
-                  onChange={e =>
-                    handleFilterChange('selected_modulo', e.target.value)
-                  }
+                  value={filters.selectedModule}
+                  onChange={e => handleFilterChange('selectedModule', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  {filterOptions.moduloOptions.map(option => (
+                  {filterOptions.moduleOptions.map(option => (
                     <option key={String(option)} value={String(option)}>
                       {String(option)}
                     </option>
@@ -286,19 +283,17 @@ export default function Sidebar() {
               </div>
 
               {/* Group Filter */}
-              {filterOptions.grupoOptions.length > 1 && (
+              {filterOptions.groupOptions.length > 1 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Grupo:
                   </label>
                   <select
-                    value={filters.selected_grupo}
-                    onChange={e =>
-                      handleFilterChange('selected_grupo', e.target.value)
-                    }
+                    value={filters.selectedGroup}
+                    onChange={e => handleFilterChange('selectedGroup', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {filterOptions.grupoOptions.map(option => (
+                    {filterOptions.groupOptions.map(option => (
                       <option key={String(option)} value={String(option)}>
                         {String(option)}
                       </option>
@@ -307,20 +302,18 @@ export default function Sidebar() {
                 </div>
               )}
 
-              {/* Consultor NTT Filter */}
-              {filterOptions.consultorOptions.length > 1 && (
+              {/* Functional Assigned Filter */}
+              {filterOptions.consultantOptions.length > 1 && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Consultor NTT:
+                    Functional Assigned:
                   </label>
                   <select
-                    value={filters.consultor_ntt}
-                    onChange={e =>
-                      handleFilterChange('consultor_ntt', e.target.value)
-                    }
+                    value={filters.functionalAssigned}
+                    onChange={e => handleFilterChange('functionalAssigned', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {filterOptions.consultorOptions.map(option => (
+                    {filterOptions.consultantOptions.map(option => (
                       <option key={String(option)} value={String(option)}>
                         {String(option)}
                       </option>
@@ -336,21 +329,19 @@ export default function Sidebar() {
                 </label>
                 <input
                   type="text"
-                  value={filters.id_filter}
-                  onChange={e =>
-                    handleFilterChange('id_filter', e.target.value)
-                  }
+                  value={filters.idFilter}
+                  onChange={e => handleFilterChange('idFilter', e.target.value)}
                   placeholder="Buscar por ID (coincidencia parcial)..."
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               {/* Filter Status Indicator */}
-              {(filters.selected_proy !== 'Todos' ||
-                filters.selected_modulo !== 'Todos' ||
-                filters.selected_grupo !== 'Todos' ||
-                filters.consultor_ntt !== 'Todos' ||
-                filters.id_filter) && (
+              {(filters.selectedProject !== 'Todos' ||
+                filters.selectedModule !== 'Todos' ||
+                filters.selectedGroup !== 'Todos' ||
+                filters.functionalAssigned !== 'Todos' ||
+                filters.idFilter) && (
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
                   <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                     <div className="flex items-center justify-between">
@@ -365,11 +356,11 @@ export default function Sidebar() {
                       <button
                         onClick={() => {
                           updateFilters({
-                            selected_proy: 'Todos',
-                            selected_modulo: 'Todos',
-                            selected_grupo: 'Todos',
-                            consultor_ntt: 'Todos',
-                            id_filter: '',
+                            selectedProject: 'Todos',
+                            selectedModule: 'Todos',
+                            selectedGroup: 'Todos',
+                            functionalAssigned: 'Todos',
+                            idFilter: '',
                           });
                         }}
                         className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 underline"

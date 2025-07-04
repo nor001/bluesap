@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { ERROR_MESSAGES } from '@/lib/types/error-messages';
+import { STATUS_CODES } from '@/lib/types/status-codes';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,14 +10,14 @@ export async function POST(request: NextRequest) {
     if (!supabase) {
       return NextResponse.json(
         { success: false, error: 'Supabase no configurado' },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
     if (!email) {
       return NextResponse.json(
         { success: false, error: 'Email requerido' },
-        { status: 400 }
+        { status: STATUS_CODES.BAD_REQUEST }
       );
     }
 
@@ -29,16 +31,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: error instanceof Error ? error.message : 'Error desconocido',
+          error: error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
         },
-        { status: 500 }
+        { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
       );
     }
 
     if (error || !data) {
       return NextResponse.json(
         { success: false, error: 'No autorizado: correo no invitado' },
-        { status: 403 }
+        { status: STATUS_CODES.FORBIDDEN }
       );
     }
 
@@ -47,9 +49,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Error desconocido',
+        error: error instanceof Error ? error.message : ERROR_MESSAGES.UNKNOWN_ERROR,
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 }

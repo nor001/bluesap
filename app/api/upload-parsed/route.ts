@@ -1,22 +1,7 @@
 import { logError } from '@/lib/error-handler';
+import { ERROR_MESSAGES } from '@/lib/types/error-messages';
+import { STATUS_CODES } from '@/lib/types/status-codes';
 import { NextRequest, NextResponse } from 'next/server';
-
-interface SAPProjectData {
-  fecha_inicio: string;
-  fecha_fin: string;
-  responsable: string;
-  duracion: number;
-  proyecto?: string;
-  modulo?: string;
-  grupo_dev?: string;
-  [key: string]: unknown;
-}
-
-interface ProcessedSAPProjectData extends SAPProjectData {
-  fecha_inicio: string;
-  fecha_fin: string;
-  duracion: number;
-}
 
 /**
  * @ai-context API endpoint for processing already parsed CSV data
@@ -34,20 +19,20 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(data)) {
       return NextResponse.json(
         { success: false, error: 'Invalid data format. Expected array of objects.' },
-        { status: 400 }
+        { status: STATUS_CODES.BAD_REQUEST }
       );
     }
 
     if (data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'No data provided.' },
-        { status: 400 }
+        { status: STATUS_CODES.BAD_REQUEST }
       );
     }
 
     // Validate SAP project data structure
-    const validateSAPProjectData = (data: SAPProjectData[]): void => {
-      const requiredColumns = ['fecha_inicio', 'fecha_fin', 'responsable', 'duracion'];
+    const validateSAPProjectData = (data: any[]): void => {
+      const requiredColumns = ['plannedAbapDevStart', 'plannedAbapDevEnd', 'abapAssigned', 'abapDevelopmentTime'];
       const firstRow = data[0];
       
       if (!firstRow || typeof firstRow !== 'object') {
@@ -64,12 +49,12 @@ export async function POST(request: NextRequest) {
     validateSAPProjectData(data);
 
     // Simple data processing - normalize dates and numbers
-    const processSAPProjectData = (data: SAPProjectData[]): ProcessedSAPProjectData[] => {
+    const processSAPProjectData = (data: any[]): any[] => {
       return data.map(row => {
-        const processedRow = { ...row } as ProcessedSAPProjectData;
+        const processedRow = { ...row };
 
         // Normalize date columns
-        const dateColumns = ['fecha_inicio', 'fecha_fin'];
+        const dateColumns = ['plannedAbapDevStart', 'plannedAbapDevEnd'];
         dateColumns.forEach(col => {
           if (row[col]) {
             try {
@@ -84,7 +69,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Normalize numeric columns
-        const numericColumns = ['duracion'];
+        const numericColumns = ['abapDevelopmentTime'];
         numericColumns.forEach(col => {
           if (row[col]) {
             const num = parseFloat(row[col] as string);
@@ -122,9 +107,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+        error: error instanceof Error ? error.message : ERROR_MESSAGES.INTERNAL_SERVER_ERROR 
       },
-      { status: 500 }
+      { status: STATUS_CODES.INTERNAL_SERVER_ERROR }
     );
   }
 } 

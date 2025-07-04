@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import { logError } from './error-handler';
+import { CONFIG_KEYS } from './types/config-keys';
 
 // Use service role key for full admin access
-const supabaseUrl =
-  process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env[CONFIG_KEYS.SUPABASE_URL] || process.env[CONFIG_KEYS.NEXT_PUBLIC_SUPABASE_URL];
+const supabaseServiceKey = process.env[CONFIG_KEYS.SUPABASE_SERVICE_ROLE_KEY];
 
 // Check if Supabase is configured with service role key
 const isSupabaseConfigured = supabaseUrl && supabaseServiceKey;

@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { supabaseClient, isSupabaseAvailable } from '@/lib/supabase-client';
+import { isSupabaseAvailable, supabaseClient } from '@/lib/supabase-client';
+import { useEffect, useState } from 'react';
+import { ERROR_MESSAGES } from '../lib/types/error-messages';
 
 export function SupabaseStatus() {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>(
@@ -12,7 +13,7 @@ export function SupabaseStatus() {
     async function checkConnection() {
       if (!isSupabaseAvailable()) {
         setStatus('error');
-        setError('Error de configuración');
+        setError(ERROR_MESSAGES.CONFIG_ERROR);
         return;
       }
 
@@ -28,7 +29,7 @@ export function SupabaseStatus() {
         }
       } catch (err) {
         setStatus('error');
-        setError(err instanceof Error ? err.message : 'Error desconocido');
+        setError(err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN_ERROR);
       }
     }
 

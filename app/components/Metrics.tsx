@@ -1,28 +1,24 @@
 'use client';
 
-import { MetricsData } from '@/lib/types';
+import { MetricsData, PlanConfig } from '@/lib/types';
+import { CSV_COLUMNS } from '@/lib/types/csv-columns';
 
 interface MetricsProps {
-  data: Array<{
-    PROY?: string;
-    [key: string]: unknown;
-  }>;
-  planConfig: {
-    resource_col: string;
-  };
+  data: Array<Record<string, any>>;
+  planConfig: PlanConfig;
 }
 
 export function Metrics({ data, planConfig }: MetricsProps) {
   const metrics: MetricsData = {
-    total_projects:
+    totalProjects:
       data.length > 0
-        ? new Set(data.map(row => row.PROY).filter(Boolean)).size
+        ? new Set(data.map(row => row[CSV_COLUMNS.PROJECT]).filter(Boolean)).size
         : 0,
-    total_tasks: data.length,
-    assigned_tasks: data.filter(
+    totalTasks: data.length,
+    assignedTasks: data.filter(
       row => row[planConfig.resource_col] && row[planConfig.resource_col] !== ''
     ).length,
-    unassigned_tasks: data.filter(
+    unassignedTasks: data.filter(
       row =>
         !row[planConfig.resource_col] || row[planConfig.resource_col] === ''
     ).length,
@@ -45,7 +41,7 @@ export function Metrics({ data, planConfig }: MetricsProps) {
               Total Projects
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {metrics.total_projects}
+              {metrics.totalProjects}
             </p>
           </div>
         </div>
@@ -66,7 +62,7 @@ export function Metrics({ data, planConfig }: MetricsProps) {
               Total Tasks
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {metrics.total_tasks}
+              {metrics.totalTasks}
             </p>
           </div>
         </div>
@@ -87,7 +83,7 @@ export function Metrics({ data, planConfig }: MetricsProps) {
               Assigned Tasks
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {metrics.assigned_tasks}
+              {metrics.assignedTasks}
             </p>
           </div>
         </div>
@@ -108,7 +104,7 @@ export function Metrics({ data, planConfig }: MetricsProps) {
               Unassigned Tasks
             </p>
             <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-              {metrics.unassigned_tasks}
+              {metrics.unassignedTasks}
             </p>
           </div>
         </div>

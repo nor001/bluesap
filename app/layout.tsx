@@ -1,7 +1,7 @@
-import type { Metadata, Viewport } from 'next';
-import './globals.css';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import type { Metadata, Viewport } from 'next';
 import Sidebar from './components/Sidebar';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'SAP Gestion - Project Planning',
@@ -22,7 +22,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className="bg-gray-50 dark:bg-gray-950">
+      <body className="bg-gray-50 dark:bg-gray-950" suppressHydrationWarning>
         <Sidebar />
         <main className="pt-16 min-h-screen">
           <ThemeProvider defaultTheme="system" enableSystem>

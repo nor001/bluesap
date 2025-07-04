@@ -5,10 +5,11 @@
 
 import { useCallback, useState } from 'react';
 import {
-  auditAPICall,
-  recordAPICall,
-  recordAPICompletion,
+    auditAPICall,
+    recordAPICall,
+    recordAPICompletion,
 } from '../performance-auditor';
+import { ERROR_MESSAGES } from '../types/error-messages';
 
 interface AuditedFetchOptions extends RequestInit {
   component: string;
@@ -80,7 +81,7 @@ export function useAuditedAPI<T = unknown>() {
         return null;
       } catch (err) {
         const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error';
+          err instanceof Error ? err.message : ERROR_MESSAGES.UNKNOWN_ERROR;
         setError(errorMessage);
         return null;
       } finally {

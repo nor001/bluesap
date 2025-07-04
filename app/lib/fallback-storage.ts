@@ -2,6 +2,7 @@
 // Preserves special CSV format and corporate environment constraints
 
 import { logError } from './error-handler';
+import { STORAGE_KEYS } from './types/storage-keys';
 
 export interface FallbackData {
   csvData: Array<Record<string, unknown>>;
@@ -14,7 +15,7 @@ interface FallbackStorage {
   version: string;
 }
 
-const STORAGE_KEY = 'bluesap_fallback_data';
+const STORAGE_KEY = STORAGE_KEYS.BLUESAP_CSV_CACHE;
 const CURRENT_VERSION = '1.0';
 
 // In-memory cache for performance
